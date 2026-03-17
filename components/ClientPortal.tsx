@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { doc, getDoc, collection, onSnapshot, addDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, onSnapshot, addDoc, updateDoc } from 'firebase/firestore';
 import { Client, ClientDocument, DocumentType, DocumentStatus } from '../types';
 import { classifyDocument } from '../services/geminiService';
 import { compressImage } from '../services/imageService';
@@ -38,6 +38,22 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ clientId }) => {
     const unsubscribe = onSnapshot(docsRef, (snapshot) => {
       const docsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ClientDocument));
       setDocuments(docsData);
+      
+      // Update progress in parent client document if client info is loaded
+      if (client) {
+        const completedTypes = client.requiredDocumentTypes.filter(type => 
+          docsData.some(d => d.type === type && d.status === DocumentStatus.UPLOADED)
+        );
+        const newProgress = Math.round((completedTypes.length / client.requiredDocumentTypes.length) * 100);
+        
+        if (newProgress !== client.progress) {
+          const clientRef = doc(db, 'clients', clientId);
+          updateDoc(clientRef, { 
+            progress: newProgress,
+            lastUpdate: new Date().toISOString()
+          }).catch(err => console.error("Error updating progress:", err));
+        }
+      }
     }, (err) => {
       console.error("Firestore snapshot error:", err);
     });

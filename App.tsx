@@ -112,24 +112,39 @@ const App: React.FC = () => {
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'clients'), (snapshot) => {
       const clientsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Client));
-      
-      // For each client, we need to fetch their documents subcollection
-      // This is a bit complex for a simple onSnapshot on the collection.
-      // In a real app, we might store documents in the client doc or use a better structure.
-      // For this prototype, I'll fetch documents for each client.
-      clientsData.forEach(client => {
-        const docsRef = collection(db, 'clients', client.id, 'documents');
-        onSnapshot(docsRef, (docsSnap) => {
-          const docs = docsSnap.docs.map(d => ({ id: d.id, ...d.data() } as ClientDocument));
-          setClients(prev => prev.map(c => c.id === client.id ? { ...c, documents: docs, progress: calculateProgress(docs, c.requiredDocumentTypes) } : c));
-        });
-      });
-
       setClients(clientsData.map(c => ({ ...c, documents: c.documents || [] })));
       setLastSaved(new Date());
     });
     return () => unsubscribe();
   }, []);
+
+  // Sync Documents for the SELECTED client
+  useEffect(() => {
+    if (!selectedClientId) return;
+
+    const docsRef = collection(db, 'clients', selectedClientId, 'documents');
+    const unsubscribe = onSnapshot(docsRef, (snapshot) => {
+      const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as ClientDocument));
+      
+      const currentClient = clients.find(c => c.id === selectedClientId);
+      if (currentClient) {
+        const newProgress = calculateProgress(docs, currentClient.requiredDocumentTypes);
+        if (newProgress !== currentClient.progress) {
+          updateDoc(doc(db, 'clients', selectedClientId), { progress: newProgress });
+        }
+      }
+
+      setClients(prev => prev.map(c => 
+        c.id === selectedClientId 
+          ? { ...c, documents: docs, progress: calculateProgress(docs, c.requiredDocumentTypes) } 
+          : c
+      ));
+    }, (err) => {
+      console.error("Error syncing documents for selected client:", err);
+    });
+
+    return () => unsubscribe();
+  }, [selectedClientId]);
 
   const selectedClient = clients.find(c => c.id === selectedClientId);
 
@@ -176,10 +191,13 @@ const App: React.FC = () => {
   const handleAddDocument = async (clientId: string, newDoc: ClientDocument) => {
     const { id, ...docData } = newDoc;
     await addDoc(collection(db, 'clients', clientId, 'documents'), docData);
+    
+    // Progress will be updated by the onSnapshot listener for documents
   };
 
   const handleRemoveDocument = async (clientId: string, docId: string) => {
     await deleteDoc(doc(db, 'clients', clientId, 'documents', docId));
+    // Progress will be updated by the onSnapshot listener for documents
   };
 
   const handleUpdateClientInfo = async (clientId: string, updates: Partial<Client>) => {
