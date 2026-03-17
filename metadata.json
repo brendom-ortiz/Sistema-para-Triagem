@@ -1,0 +1,7 @@
+{
+  "name": "Triagem Ancorada",
+  "description": "Sistema inteligente de gestão de documentos para empresas de consórcio, utilizando IA para identificação automática e controle de pendências.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

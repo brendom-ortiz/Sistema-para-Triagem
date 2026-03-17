@@ -1,0 +1,38 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/analysts/$(request.auth.uid)).data.role != null || 
+         request.auth.token.email == "brendomsiqueira96@gmail.com");
+    }
+
+    // Analysts collection
+    match /analysts/{analystId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Clients collection
+    match /clients/{clientId} {
+      // Allow public read for the client portal (using clientId as secret)
+      // In a real app, we'd use a more secure token, but for this prototype clientId in URL is the "link"
+      allow read: if true; 
+      allow write: if isAdmin();
+      
+      // Documents subcollection
+      match /documents/{docId} {
+        allow read: if true;
+        // Allow clients to create documents (upload)
+        allow create: if true; 
+        allow update, delete: if isAdmin();
+      }
+    }
+  }
+}

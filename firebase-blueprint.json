@@ -1,0 +1,69 @@
+{
+  "entities": {
+    "Analyst": {
+      "title": "Analyst",
+      "description": "System analyst who manages clients and documents",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["Cadastro", "Contemplação", "Ambos"] }
+      },
+      "required": ["id", "name", "email", "role"]
+    },
+    "Client": {
+      "title": "Client",
+      "description": "Consortium client",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "cpf": { "type": "string" },
+        "clientType": { "type": "string", "enum": ["PF", "PJ"] },
+        "consortiumType": { "type": "string" },
+        "group": { "type": "string" },
+        "quota": { "type": "string" },
+        "analystName": { "type": "string" },
+        "analystEmail": { "type": "string" },
+        "analystContemplation": { "type": "string" },
+        "progress": { "type": "number" },
+        "requiredDocumentTypes": { 
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["id", "name", "email", "cpf", "clientType", "consortiumType", "group", "quota", "progress", "requiredDocumentTypes"]
+    },
+    "ClientDocument": {
+      "title": "Client Document",
+      "description": "Document uploaded by or for a client",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string" },
+        "status": { "type": "string", "enum": ["PENDING", "UPLOADED", "REJECTED"] },
+        "fileName": { "type": "string" },
+        "fileData": { "type": "string" },
+        "uploadDate": { "type": "string" },
+        "confidence": { "type": "number" }
+      },
+      "required": ["id", "type", "status"]
+    }
+  },
+  "firestore": {
+    "/analysts/{analystId}": {
+      "schema": "Analyst",
+      "description": "Collection of analysts"
+    },
+    "/clients/{clientId}": {
+      "schema": "Client",
+      "description": "Collection of clients"
+    },
+    "/clients/{clientId}/documents/{documentId}": {
+      "schema": "ClientDocument",
+      "description": "Subcollection of documents for each client"
+    }
+  }
+}
