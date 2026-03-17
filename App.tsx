@@ -259,6 +259,7 @@ const App: React.FC = () => {
                     clients={filteredClients} 
                     selectedId={selectedClientId} 
                     onSelect={setSelectedClientId} 
+                    onDelete={handleDeleteClient}
                   />
                 </div>
               </div>

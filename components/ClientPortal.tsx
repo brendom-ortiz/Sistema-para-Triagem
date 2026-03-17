@@ -46,29 +46,47 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ clientId }) => {
     try {
       const reader = new FileReader();
       reader.onload = async (event) => {
-        const base64 = event.target?.result as string;
-        const base64Data = base64.split(',')[1];
-        
-        // Analyze with Gemini
-        const analysis = await classifyDocument(base64Data);
-        
-        const newDoc: Omit<ClientDocument, 'id'> = {
-          type: analysis.type || type,
-          status: DocumentStatus.UPLOADED,
-          fileName: file.name,
-          fileData: base64,
-          uploadDate: new Date().toISOString().split('T')[0],
-          confidence: analysis.confidence
-        };
+        try {
+          const base64 = event.target?.result as string;
+          const base64Data = base64.split(',')[1];
+          
+          console.log("Analyzing document with Gemini...");
+          // Analyze with Gemini - wrap in try/catch to not block upload if AI fails
+          let analysis = { type: type, confidence: 0 };
+          try {
+            analysis = await classifyDocument(base64Data);
+          } catch (aiErr) {
+            console.warn("AI Classification failed, using default type:", aiErr);
+          }
+          
+          const newDoc: Omit<ClientDocument, 'id'> = {
+            type: analysis.type || type,
+            status: DocumentStatus.UPLOADED,
+            fileName: file.name,
+            fileData: base64,
+            uploadDate: new Date().toISOString().split('T')[0],
+            confidence: analysis.confidence || 0
+          };
 
-        await addDoc(collection(db, 'clients', clientId, 'documents'), newDoc);
+          console.log("Saving document to Firestore...");
+          await addDoc(collection(db, 'clients', clientId, 'documents'), newDoc);
+          console.log("Document saved successfully");
+          setUploading(null);
+        } catch (innerErr: any) {
+          console.error("Error processing file:", innerErr);
+          alert(`Erro ao processar arquivo: ${innerErr.message || 'Erro desconhecido'}`);
+          setUploading(null);
+        }
+      };
+      reader.onerror = () => {
+        alert("Erro ao ler o arquivo do seu dispositivo.");
         setUploading(null);
       };
       reader.readAsDataURL(file);
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error("Upload error:", err);
       setUploading(null);
-      alert('Erro ao enviar documento.');
+      alert(`Erro ao enviar: ${err.message || 'Verifique sua conexão'}`);
     }
   };
 
