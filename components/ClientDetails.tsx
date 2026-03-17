@@ -246,6 +246,7 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
       };
 
       onAddDocument(newDoc);
+      alert("Documento adicionado com sucesso!");
 
       if (result.type !== category && result.type !== DocumentType.UNKNOWN) {
         alert(`Aviso de IA: O documento parece ser um "${result.type}", mas você está salvando em "${category}". Verifique se está correto.`);

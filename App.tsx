@@ -23,50 +23,6 @@ import {
   orderBy 
 } from 'firebase/firestore';
 
-class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean, error: Error | null}> {
-  constructor(props: {children: React.ReactNode}) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error("ErrorBoundary caught an error", error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="min-h-screen bg-red-50 flex items-center justify-center p-4">
-          <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full border border-red-100">
-            <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-6 mx-auto">
-              <i className="fa-solid fa-triangle-exclamation text-2xl"></i>
-            </div>
-            <h1 className="text-xl font-bold text-gray-900 text-center mb-2">Ops! Algo deu errado.</h1>
-            <p className="text-gray-600 text-center mb-6 text-sm">
-              A aplicação encontrou um erro inesperado. Tente recarregar a página.
-            </p>
-            <div className="bg-gray-50 p-4 rounded-lg mb-6 overflow-auto max-h-40">
-              <code className="text-xs text-red-500">{this.state.error?.toString()}</code>
-            </div>
-            <button 
-              onClick={() => window.location.reload()}
-              className="w-full py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-all"
-            >
-              Recarregar Página
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    return this.props.children;
-  }
-}
-
 const DEFAULT_REQUIRED = [
   DocumentType.ID, 
   DocumentType.RESIDENCE, 
@@ -81,6 +37,7 @@ const App: React.FC = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [analysts, setAnalysts] = useState<Analyst[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [selectedClientDocuments, setSelectedClientDocuments] = useState<ClientDocument[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeView, setActiveView] = useState<ViewType>('dashboard');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -112,7 +69,7 @@ const App: React.FC = () => {
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'clients'), (snapshot) => {
       const clientsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Client));
-      setClients(clientsData.map(c => ({ ...c, documents: c.documents || [] })));
+      setClients(clientsData);
       setLastSaved(new Date());
     });
     return () => unsubscribe();
@@ -120,12 +77,17 @@ const App: React.FC = () => {
 
   // Sync Documents for the SELECTED client
   useEffect(() => {
-    if (!selectedClientId) return;
+    if (!selectedClientId) {
+      setSelectedClientDocuments([]);
+      return;
+    }
 
     const docsRef = collection(db, 'clients', selectedClientId, 'documents');
     const unsubscribe = onSnapshot(docsRef, (snapshot) => {
       const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as ClientDocument));
+      setSelectedClientDocuments(docs);
       
+      // Update progress in Firestore if needed
       const currentClient = clients.find(c => c.id === selectedClientId);
       if (currentClient) {
         const newProgress = calculateProgress(docs, currentClient.requiredDocumentTypes);
@@ -133,20 +95,15 @@ const App: React.FC = () => {
           updateDoc(doc(db, 'clients', selectedClientId), { progress: newProgress });
         }
       }
-
-      setClients(prev => prev.map(c => 
-        c.id === selectedClientId 
-          ? { ...c, documents: docs, progress: calculateProgress(docs, c.requiredDocumentTypes) } 
-          : c
-      ));
     }, (err) => {
       console.error("Error syncing documents for selected client:", err);
     });
 
     return () => unsubscribe();
-  }, [selectedClientId]);
+  }, [selectedClientId, clients]);
 
   const selectedClient = clients.find(c => c.id === selectedClientId);
+  const selectedClientWithDocs = selectedClient ? { ...selectedClient, documents: selectedClientDocuments } : null;
 
   const calculateProgress = (docs: ClientDocument[], requiredTypes: DocumentType[]) => {
     if (requiredTypes.length === 0) return 100;
@@ -232,15 +189,12 @@ const App: React.FC = () => {
 
   if (isClientPortal && portalClientId) {
     return (
-      <ErrorBoundary>
-        <ClientPortal clientId={portalClientId} />
-      </ErrorBoundary>
+      <ClientPortal clientId={portalClientId} />
     );
   }
 
   return (
-    <ErrorBoundary>
-      <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
         <Header activeView={activeView} onViewChange={setActiveView} />
         
         <main className="flex-grow container mx-auto px-4 py-8 relative">
@@ -283,15 +237,15 @@ const App: React.FC = () => {
               </div>
 
               <div className="w-full lg:w-2/3 xl:w-3/4">
-                {selectedClient ? (
+                {selectedClientWithDocs ? (
                   <ClientDetails 
-                    client={selectedClient} 
+                    client={selectedClientWithDocs} 
                     analysts={analysts}
-                    onAddDocument={(newDoc) => handleAddDocument(selectedClient.id, newDoc)}
-                    onRemoveDocument={(docId) => handleRemoveDocument(selectedClient.id, docId)}
-                    onUpdateClientInfo={(updates) => handleUpdateClientInfo(selectedClient.id, updates)}
-                    onDeleteClient={() => handleDeleteClient(selectedClient.id)}
-                    onToggleRequirement={(docType) => handleToggleRequirement(selectedClient.id, docType)}
+                    onAddDocument={(newDoc) => handleAddDocument(selectedClientWithDocs.id, newDoc)}
+                    onRemoveDocument={(docId) => handleRemoveDocument(selectedClientWithDocs.id, docId)}
+                    onUpdateClientInfo={(updates) => handleUpdateClientInfo(selectedClientWithDocs.id, updates)}
+                    onDeleteClient={() => handleDeleteClient(selectedClientWithDocs.id)}
+                    onToggleRequirement={(docType) => handleToggleRequirement(selectedClientWithDocs.id, docType)}
                   />
                 ) : (
                   <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-12 flex flex-col items-center justify-center text-center">
@@ -334,7 +288,6 @@ const App: React.FC = () => {
           <p>&copy; 2024 Triagem Ancorada - Tecnologia para Gestão Documental</p>
         </footer>
       </div>
-    </ErrorBoundary>
   );
 };
 

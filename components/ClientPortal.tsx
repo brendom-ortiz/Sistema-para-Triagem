@@ -19,15 +19,15 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ clientId }) => {
   useEffect(() => {
     const clientRef = doc(db, 'clients', clientId);
     
-    // Fetch client info
-    getDoc(clientRef).then((docSnap) => {
+    // Listen to client info
+    const unsubscribeClient = onSnapshot(clientRef, (docSnap) => {
       if (docSnap.exists()) {
         setClient({ id: docSnap.id, ...docSnap.data() } as Client);
       } else {
         setError('Cliente não encontrado.');
       }
       setLoading(false);
-    }).catch(err => {
+    }, (err) => {
       console.error("Error fetching client:", err);
       setError('Erro ao carregar dados do cliente.');
       setLoading(false);
@@ -35,31 +35,37 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ clientId }) => {
 
     // Listen to documents
     const docsRef = collection(db, 'clients', clientId, 'documents');
-    const unsubscribe = onSnapshot(docsRef, (snapshot) => {
+    const unsubscribeDocs = onSnapshot(docsRef, (snapshot) => {
       const docsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ClientDocument));
       setDocuments(docsData);
-      
-      // Update progress in parent client document if client info is loaded
-      if (client) {
-        const completedTypes = client.requiredDocumentTypes.filter(type => 
-          docsData.some(d => d.type === type && d.status === DocumentStatus.UPLOADED)
-        );
-        const newProgress = Math.round((completedTypes.length / client.requiredDocumentTypes.length) * 100);
-        
-        if (newProgress !== client.progress) {
-          const clientRef = doc(db, 'clients', clientId);
-          updateDoc(clientRef, { 
-            progress: newProgress,
-            lastUpdate: new Date().toISOString()
-          }).catch(err => console.error("Error updating progress:", err));
-        }
-      }
     }, (err) => {
       console.error("Firestore snapshot error:", err);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeClient();
+      unsubscribeDocs();
+    };
   }, [clientId]);
+
+  // Separate effect for progress sync to avoid stale closures
+  useEffect(() => {
+    if (client && documents.length > 0) {
+      const completedTypes = client.requiredDocumentTypes.filter(type => 
+        documents.some(d => d.type === type && d.status === DocumentStatus.UPLOADED)
+      );
+      const newProgress = Math.round((completedTypes.length / client.requiredDocumentTypes.length) * 100);
+      
+      if (newProgress !== client.progress) {
+        console.log(`Updating progress for ${client.name}: ${newProgress}%`);
+        const clientRef = doc(db, 'clients', clientId);
+        updateDoc(clientRef, { 
+          progress: newProgress,
+          lastUpdate: new Date().toISOString()
+        }).catch(err => console.error("Error updating progress:", err));
+      }
+    }
+  }, [client, documents, clientId]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: DocumentType) => {
     const file = e.target.files?.[0];
@@ -116,9 +122,10 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ clientId }) => {
         confidence: analysis.confidence || 0
       };
 
-      console.log("Saving document to Firestore...");
+      console.log(`Saving document to Firestore path: clients/${clientId}/documents`);
       await addDoc(collection(db, 'clients', clientId, 'documents'), newDoc);
       console.log("Document saved successfully");
+      alert("Documento enviado com sucesso!");
       setUploading(null);
     } catch (err: any) {
       console.error("Upload error:", err);
