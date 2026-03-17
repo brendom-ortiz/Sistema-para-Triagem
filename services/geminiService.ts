@@ -2,7 +2,9 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { DocumentType } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Use GEMINI_API_KEY as per guidelines and handle potential process undefined error
+const apiKey = typeof process !== 'undefined' ? (process.env.GEMINI_API_KEY || process.env.API_KEY) : '';
+const ai = new GoogleGenAI({ apiKey: apiKey || '' });
 
 export const classifyDocument = async (base64Image: string): Promise<{ type: DocumentType, confidence: number }> => {
   try {

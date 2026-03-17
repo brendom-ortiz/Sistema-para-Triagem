@@ -23,6 +23,50 @@ import {
   orderBy 
 } from 'firebase/firestore';
 
+class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean, error: Error | null}> {
+  constructor(props: {children: React.ReactNode}) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error("ErrorBoundary caught an error", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-red-50 flex items-center justify-center p-4">
+          <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full border border-red-100">
+            <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-6 mx-auto">
+              <i className="fa-solid fa-triangle-exclamation text-2xl"></i>
+            </div>
+            <h1 className="text-xl font-bold text-gray-900 text-center mb-2">Ops! Algo deu errado.</h1>
+            <p className="text-gray-600 text-center mb-6 text-sm">
+              A aplicação encontrou um erro inesperado. Tente recarregar a página.
+            </p>
+            <div className="bg-gray-50 p-4 rounded-lg mb-6 overflow-auto max-h-40">
+              <code className="text-xs text-red-500">{this.state.error?.toString()}</code>
+            </div>
+            <button 
+              onClick={() => window.location.reload()}
+              className="w-full py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-all"
+            >
+              Recarregar Página
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 const DEFAULT_REQUIRED = [
   DocumentType.ID, 
   DocumentType.RESIDENCE, 
@@ -159,103 +203,109 @@ const App: React.FC = () => {
   );
 
   if (isClientPortal && portalClientId) {
-    return <ClientPortal clientId={portalClientId} />;
+    return (
+      <ErrorBoundary>
+        <ClientPortal clientId={portalClientId} />
+      </ErrorBoundary>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header activeView={activeView} onViewChange={setActiveView} />
-      
-      <main className="flex-grow container mx-auto px-4 py-8 relative">
-        {/* Indicador de Salvamento Automático */}
-        <div className="absolute top-0 right-4 flex items-center gap-2 text-[10px] font-black text-emerald-500 uppercase tracking-widest pointer-events-none opacity-50">
-          <i className="fa-solid fa-cloud-arrow-up animate-pulse"></i>
-          Sincronizado {lastSaved && lastSaved.toLocaleTimeString()}
-        </div>
+    <ErrorBoundary>
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <Header activeView={activeView} onViewChange={setActiveView} />
+        
+        <main className="flex-grow container mx-auto px-4 py-8 relative">
+          {/* Indicador de Salvamento Automático */}
+          <div className="absolute top-0 right-4 flex items-center gap-2 text-[10px] font-black text-emerald-500 uppercase tracking-widest pointer-events-none opacity-50">
+            <i className="fa-solid fa-cloud-arrow-up animate-pulse"></i>
+            Sincronizado {lastSaved && lastSaved.toLocaleTimeString()}
+          </div>
 
-        {activeView === 'dashboard' && (
-          <div className="flex flex-col lg:flex-row gap-8 animate-fadeIn">
-            <div className="w-full lg:w-1/3 xl:w-1/4">
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="p-4 border-b border-gray-100 space-y-3">
-                  <div className="relative">
-                    <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                    <input 
-                      type="text" 
-                      placeholder="Buscar cliente ou cota..."
-                      className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+          {activeView === 'dashboard' && (
+            <div className="flex flex-col lg:flex-row gap-8 animate-fadeIn">
+              <div className="w-full lg:w-1/3 xl:w-1/4">
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                  <div className="p-4 border-b border-gray-100 space-y-3">
+                    <div className="relative">
+                      <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                      <input 
+                        type="text" 
+                        placeholder="Buscar cliente ou cota..."
+                        className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                      />
+                    </div>
+                    <button 
+                      onClick={() => setIsAddModalOpen(true)}
+                      className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-sm"
+                    >
+                      <i className="fa-solid fa-plus"></i>
+                      Novo Cadastro
+                    </button>
                   </div>
-                  <button 
-                    onClick={() => setIsAddModalOpen(true)}
-                    className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-sm"
-                  >
-                    <i className="fa-solid fa-plus"></i>
-                    Novo Cadastro
-                  </button>
+                  <ClientList 
+                    clients={filteredClients} 
+                    selectedId={selectedClientId} 
+                    onSelect={setSelectedClientId} 
+                  />
                 </div>
-                <ClientList 
-                  clients={filteredClients} 
-                  selectedId={selectedClientId} 
-                  onSelect={setSelectedClientId} 
-                />
+              </div>
+
+              <div className="w-full lg:w-2/3 xl:w-3/4">
+                {selectedClient ? (
+                  <ClientDetails 
+                    client={selectedClient} 
+                    analysts={analysts}
+                    onAddDocument={(newDoc) => handleAddDocument(selectedClient.id, newDoc)}
+                    onRemoveDocument={(docId) => handleRemoveDocument(selectedClient.id, docId)}
+                    onUpdateClientInfo={(updates) => handleUpdateClientInfo(selectedClient.id, updates)}
+                    onDeleteClient={() => handleDeleteClient(selectedClient.id)}
+                    onToggleRequirement={(docType) => handleToggleRequirement(selectedClient.id, docType)}
+                  />
+                ) : (
+                  <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-12 flex flex-col items-center justify-center text-center">
+                    <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 mb-6">
+                      <i className="fa-solid fa-users text-3xl"></i>
+                    </div>
+                    <h2 className="text-xl font-semibold text-gray-800 mb-2">Selecione um Cliente</h2>
+                    <p className="text-gray-500 max-w-xs mx-auto">
+                      Escolha um cliente da lista ao lado para gerenciar documentos e acompanhar o status.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
+          )}
 
-            <div className="w-full lg:w-2/3 xl:w-3/4">
-              {selectedClient ? (
-                <ClientDetails 
-                  client={selectedClient} 
-                  analysts={analysts}
-                  onAddDocument={(newDoc) => handleAddDocument(selectedClient.id, newDoc)}
-                  onRemoveDocument={(docId) => handleRemoveDocument(selectedClient.id, docId)}
-                  onUpdateClientInfo={(updates) => handleUpdateClientInfo(selectedClient.id, updates)}
-                  onDeleteClient={() => handleDeleteClient(selectedClient.id)}
-                  onToggleRequirement={(docType) => handleToggleRequirement(selectedClient.id, docType)}
-                />
-              ) : (
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-12 flex flex-col items-center justify-center text-center">
-                  <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 mb-6">
-                    <i className="fa-solid fa-users text-3xl"></i>
-                  </div>
-                  <h2 className="text-xl font-semibold text-gray-800 mb-2">Selecione um Cliente</h2>
-                  <p className="text-gray-500 max-w-xs mx-auto">
-                    Escolha um cliente da lista ao lado para gerenciar documentos e acompanhar o status.
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+          {activeView === 'reports' && <Reports clients={clients} />}
+          {activeView === 'segments' && <Segments clients={clients} onSelectClient={(id) => { setSelectedClientId(id); setActiveView('dashboard'); }} />}
+          {activeView === 'analysts' && (
+            <AnalystManagement 
+              analysts={analysts} 
+              onAdd={handleAddAnalyst} 
+              onUpdate={handleUpdateAnalyst}
+              onRemove={handleRemoveAnalyst} 
+              clients={clients} 
+            />
+          )}
+          {activeView === 'management' && <DocumentManagement clients={clients} />}
+        </main>
 
-        {activeView === 'reports' && <Reports clients={clients} />}
-        {activeView === 'segments' && <Segments clients={clients} onSelectClient={(id) => { setSelectedClientId(id); setActiveView('dashboard'); }} />}
-        {activeView === 'analysts' && (
-          <AnalystManagement 
-            analysts={analysts} 
-            onAdd={handleAddAnalyst} 
-            onUpdate={handleUpdateAnalyst}
-            onRemove={handleRemoveAnalyst} 
-            clients={clients} 
+        {isAddModalOpen && (
+          <AddClientModal 
+            onClose={() => setIsAddModalOpen(false)} 
+            onAdd={handleAddClient} 
+            analysts={analysts}
           />
         )}
-        {activeView === 'management' && <DocumentManagement clients={clients} />}
-      </main>
 
-      {isAddModalOpen && (
-        <AddClientModal 
-          onClose={() => setIsAddModalOpen(false)} 
-          onAdd={handleAddClient} 
-          analysts={analysts}
-        />
-      )}
-
-      <footer className="bg-white border-t border-gray-200 py-6 text-center text-gray-400 text-sm">
-        <p>&copy; 2024 Triagem Ancorada - Tecnologia para Gestão Documental</p>
-      </footer>
-    </div>
+        <footer className="bg-white border-t border-gray-200 py-6 text-center text-gray-400 text-sm">
+          <p>&copy; 2024 Triagem Ancorada - Tecnologia para Gestão Documental</p>
+        </footer>
+      </div>
+    </ErrorBoundary>
   );
 };
 
