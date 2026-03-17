@@ -23,8 +23,9 @@ const Header: React.FC<HeaderProps> = ({ activeView, onViewChange }) => {
     try {
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login error:", error);
+      alert(`Erro ao fazer login: ${error.message || 'Erro desconhecido'}`);
     }
   };
 
