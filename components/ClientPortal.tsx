@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
 import { doc, getDoc, collection, onSnapshot, addDoc, updateDoc } from 'firebase/firestore';
 import { Client, ClientDocument, DocumentType, DocumentStatus } from '../types';
 import { classifyDocument } from '../services/geminiService';
@@ -50,11 +50,13 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ clientId }) => {
 
   // Separate effect for progress sync to avoid stale closures
   useEffect(() => {
-    if (client && documents.length > 0) {
+    if (client) {
       const completedTypes = client.requiredDocumentTypes.filter(type => 
         documents.some(d => d.type === type && d.status === DocumentStatus.UPLOADED)
       );
-      const newProgress = Math.round((completedTypes.length / client.requiredDocumentTypes.length) * 100);
+      const newProgress = client.requiredDocumentTypes.length > 0 
+        ? Math.round((completedTypes.length / client.requiredDocumentTypes.length) * 100)
+        : 100;
       
       if (newProgress !== client.progress) {
         console.log(`Updating progress for ${client.name}: ${newProgress}%`);
@@ -65,7 +67,7 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ clientId }) => {
         }).catch(err => console.error("Error updating progress:", err));
       }
     }
-  }, [client, documents, clientId]);
+  }, [client?.requiredDocumentTypes, documents, clientId, client?.progress, client?.name]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: DocumentType) => {
     const file = e.target.files?.[0];
@@ -134,10 +136,20 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ clientId }) => {
     }
   };
 
+  const handleExitPortal = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('clientId');
+    window.history.pushState({}, '', url.toString());
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-500 font-bold animate-pulse uppercase tracking-widest text-xs">Carregando Portal...</p>
+        </div>
       </div>
     );
   }
@@ -145,18 +157,48 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ clientId }) => {
   if (error || !client) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200 text-center max-w-md">
-          <i className="fa-solid fa-circle-exclamation text-red-500 text-4xl mb-4"></i>
-          <h2 className="text-xl font-bold text-gray-800 mb-2">Ops!</h2>
-          <p className="text-gray-600">{error || 'Não foi possível carregar suas informações.'}</p>
+        <div className="bg-white p-10 rounded-[40px] shadow-xl border border-gray-100 max-w-md w-full text-center">
+          <div className="w-20 h-20 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center text-4xl mx-auto mb-6 shadow-lg border-2 border-white">
+            <i className="fa-solid fa-circle-exclamation"></i>
+          </div>
+          <h2 className="text-2xl font-black text-gray-800 mb-2">ACESSO NEGADO</h2>
+          <p className="text-gray-500 mb-8 font-medium">{error || 'Link inválido ou expirado.'}</p>
+          <button 
+            onClick={handleExitPortal}
+            className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl active:scale-95"
+          >
+            Voltar ao Sistema
+          </button>
         </div>
       </div>
     );
   }
 
+  const isAnalyst = auth.currentUser !== null;
+
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
-      <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen bg-gray-50 pb-20">
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="bg-blue-600 w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-lg">
+              <i className="fa-solid fa-anchor text-lg"></i>
+            </div>
+            <h1 className="text-xl font-black tracking-tight text-gray-800">TRIAGEM ANCORADA</h1>
+          </div>
+          
+          {isAnalyst && (
+            <button 
+              onClick={handleExitPortal}
+              className="px-4 py-2 bg-gray-100 text-gray-600 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-gray-200 transition-all flex items-center gap-2"
+            >
+              <i className="fa-solid fa-arrow-left"></i>
+              Sair do Portal
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="max-w-2xl mx-auto pt-12 px-4">
         <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
           <div className="bg-blue-600 p-8 text-white text-center">
             <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">

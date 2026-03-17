@@ -19,6 +19,7 @@ import {
   updateDoc, 
   deleteDoc, 
   addDoc, 
+  getDoc,
   query, 
   orderBy 
 } from 'firebase/firestore';
@@ -47,12 +48,21 @@ const App: React.FC = () => {
 
   // Check for client portal in URL
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const clientId = params.get('clientId');
-    if (clientId) {
-      setIsClientPortal(true);
-      setPortalClientId(clientId);
-    }
+    const handleUrlChange = () => {
+      const params = new URLSearchParams(window.location.search);
+      const clientId = params.get('clientId');
+      if (clientId) {
+        setIsClientPortal(true);
+        setPortalClientId(clientId);
+      } else {
+        setIsClientPortal(false);
+        setPortalClientId(null);
+      }
+    };
+
+    handleUrlChange();
+    window.addEventListener('popstate', handleUrlChange);
+    return () => window.removeEventListener('popstate', handleUrlChange);
   }, []);
 
   // Sync Analysts from Firestore
@@ -87,20 +97,28 @@ const App: React.FC = () => {
       const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as ClientDocument));
       setSelectedClientDocuments(docs);
       
-      // Update progress in Firestore if needed
-      const currentClient = clients.find(c => c.id === selectedClientId);
-      if (currentClient) {
-        const newProgress = calculateProgress(docs, currentClient.requiredDocumentTypes);
-        if (newProgress !== currentClient.progress) {
-          updateDoc(doc(db, 'clients', selectedClientId), { progress: newProgress });
+      // Update progress in Firestore if needed - using a more targeted check
+      // We don't want to depend on the whole 'clients' array here to avoid loops
+      const clientRef = doc(db, 'clients', selectedClientId);
+      getDoc(clientRef).then(docSnap => {
+        if (docSnap.exists()) {
+          const clientData = docSnap.data() as Client;
+          const newProgress = calculateProgress(docs, clientData.requiredDocumentTypes);
+          if (newProgress !== clientData.progress) {
+            console.log(`Updating progress for ${clientData.name} to ${newProgress}%`);
+            updateDoc(clientRef, { 
+              progress: newProgress,
+              lastUpdate: new Date().toISOString()
+            });
+          }
         }
-      }
+      }).catch(err => console.error("Error checking client progress:", err));
     }, (err) => {
       console.error("Error syncing documents for selected client:", err);
     });
 
     return () => unsubscribe();
-  }, [selectedClientId, clients]);
+  }, [selectedClientId]); // Removed 'clients' dependency to avoid infinite loop
 
   const selectedClient = clients.find(c => c.id === selectedClientId);
   const selectedClientWithDocs = selectedClient ? { ...selectedClient, documents: selectedClientDocuments } : null;
