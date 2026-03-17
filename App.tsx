@@ -143,10 +143,6 @@ const App: React.FC = () => {
 
   const handleAddClient = async (newClient: Client) => {
     console.log("Attempting to add client:", newClient);
-    if (!auth.currentUser) {
-      alert("Você precisa estar logado como analista para cadastrar clientes.");
-      return;
-    }
     
     try {
       const { id, documents, ...clientData } = newClient;

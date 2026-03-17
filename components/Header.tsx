@@ -115,29 +115,10 @@ const Header: React.FC<HeaderProps> = ({ activeView, onViewChange }) => {
         </nav>
 
         <div className="flex items-center gap-4">
-          {user ? (
-            <div className="flex items-center gap-3">
-              <div className="hidden md:block text-right">
-                <p className="text-xs font-bold text-gray-800">{user.displayName}</p>
-                <p className="text-[10px] text-gray-400">{user.email}</p>
-              </div>
-              <button 
-                onClick={handleLogout}
-                className="w-10 h-10 bg-gray-100 hover:bg-red-50 text-gray-500 hover:text-red-600 rounded-xl flex items-center justify-center transition-all"
-                title="Sair"
-              >
-                <i className="fa-solid fa-right-from-bracket"></i>
-              </button>
-            </div>
-          ) : (
-            <button 
-              onClick={handleLogin}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-all flex items-center gap-2 shadow-md"
-            >
-              <i className="fa-solid fa-user-lock"></i>
-              Acesso Analista
-            </button>
-          )}
+          <div className="hidden md:block text-right">
+            <p className="text-xs font-bold text-gray-800">SISTEMA ABERTO</p>
+            <p className="text-[10px] text-gray-400">Acesso Administrativo</p>
+          </div>
         </div>
       </div>
     </header>

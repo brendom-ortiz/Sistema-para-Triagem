@@ -15,23 +15,16 @@ service cloud.firestore {
 
     // Analysts collection
     match /analysts/{analystId} {
-      allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      allow read, write: if true;
     }
 
     // Clients collection
     match /clients/{clientId} {
-      // Allow public read for the client portal (using clientId as secret)
-      // In a real app, we'd use a more secure token, but for this prototype clientId in URL is the "link"
-      allow read: if true; 
-      allow write: if isAdmin();
+      allow read, write: if true; 
       
       // Documents subcollection
       match /documents/{docId} {
-        allow read: if true;
-        // Allow clients to create documents (upload)
-        allow create: if true; 
-        allow update, delete: if isAdmin();
+        allow read, write: if true;
       }
     }
   }
