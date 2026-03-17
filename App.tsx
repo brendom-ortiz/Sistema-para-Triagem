@@ -142,10 +142,24 @@ const App: React.FC = () => {
   };
 
   const handleAddClient = async (newClient: Client) => {
-    const { id, documents, ...clientData } = newClient;
-    await setDoc(doc(db, 'clients', id), clientData);
-    setSelectedClientId(id);
-    setIsAddModalOpen(false);
+    console.log("Attempting to add client:", newClient);
+    if (!auth.currentUser) {
+      alert("Você precisa estar logado como analista para cadastrar clientes.");
+      return;
+    }
+    
+    try {
+      const { id, documents, ...clientData } = newClient;
+      const clientRef = doc(db, 'clients', id);
+      console.log("Setting doc at path: clients/", id);
+      await setDoc(clientRef, clientData);
+      console.log("Doc saved successfully");
+      setSelectedClientId(id);
+      setIsAddModalOpen(false);
+    } catch (error: any) {
+      console.error("Detailed error adding client:", error);
+      alert(`Erro técnico ao salvar: ${error.code || 'Erro'} - ${error.message}`);
+    }
   };
 
   const handleAddAnalyst = async (analyst: Analyst) => {

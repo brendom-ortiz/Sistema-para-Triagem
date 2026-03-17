@@ -9,8 +9,8 @@ service cloud.firestore {
     
     function isAdmin() {
       return isAuthenticated() && 
-        (get(/databases/$(database)/documents/analysts/$(request.auth.uid)).data.role != null || 
-         request.auth.token.email == "brendomsiqueira96@gmail.com");
+        (request.auth.token.email == "brendomsiqueira96@gmail.com" ||
+         exists(/databases/$(database)/documents/analysts/$(request.auth.uid)));
     }
 
     // Analysts collection

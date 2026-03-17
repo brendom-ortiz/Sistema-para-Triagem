@@ -25,23 +25,30 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ onClose, onAdd, analyst
     analystContemplation: ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.cpf || !formData.group || !formData.quota || !formData.email) {
       alert("Por favor, preencha todos os campos obrigatórios.");
       return;
     }
 
-    const newClient: Client = {
-      id: Math.random().toString(36).substr(2, 9),
-      ...formData,
-      clientType,
-      progress: 0,
-      documents: [],
-      requiredDocumentTypes: DEFAULT_REQUIRED
-    };
+    setIsSubmitting(true);
+    try {
+      const newClient: Client = {
+        id: Math.random().toString(36).substr(2, 9),
+        ...formData,
+        clientType,
+        progress: 0,
+        documents: [],
+        requiredDocumentTypes: DEFAULT_REQUIRED
+      };
 
-    onAdd(newClient);
+      await onAdd(newClient);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleAnalystChange = (name: string) => {
@@ -213,15 +220,26 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ onClose, onAdd, analyst
                 type="button"
                 onClick={onClose}
                 className="px-6 py-3 text-gray-500 font-bold text-sm hover:text-gray-800 transition-colors"
+                disabled={isSubmitting}
               >
                 Cancelar
               </button>
               <button 
                 type="submit"
-                className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl shadow-lg shadow-blue-200 transition-all active:scale-95 flex items-center gap-2"
+                disabled={isSubmitting}
+                className={`px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl shadow-lg shadow-blue-200 transition-all active:scale-95 flex items-center gap-2 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
               >
-                <i className="fa-solid fa-check"></i>
-                Criar Cadastro
+                {isSubmitting ? (
+                  <>
+                    <i className="fa-solid fa-circle-notch animate-spin"></i>
+                    Salvando...
+                  </>
+                ) : (
+                  <>
+                    <i className="fa-solid fa-check"></i>
+                    Criar Cadastro
+                  </>
+                )}
               </button>
             </div>
           </form>
