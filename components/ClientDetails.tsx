@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Client, DocumentStatus, DocumentType, ClientDocument, Analyst } from '../types';
 import { classifyDocument } from '../services/geminiService';
+import { compressImage } from '../services/imageService';
 import JSZip from 'jszip';
 
 interface ClientDetailsProps {
@@ -199,12 +200,39 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Check file size for non-images (PDFs)
+    if (!file.type.startsWith('image/') && file.size > 1000000) {
+      alert('Arquivos PDF devem ter menos de 1MB. Por favor, comprima o arquivo ou envie uma foto.');
+      return;
+    }
+
     setIsProcessing(category);
 
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = async () => {
-      const base64Data = (reader.result as string).split(',')[1];
+    try {
+      let fileData: string;
+      
+      if (file.type.startsWith('image/')) {
+        console.log("Compressing image...");
+        fileData = await compressImage(file);
+      } else {
+        // For PDFs, just read as base64
+        fileData = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (event) => resolve(event.target?.result as string);
+          reader.onerror = (err) => reject(err);
+          reader.readAsDataURL(file);
+        });
+      }
+
+      const base64Data = fileData.split(',')[1];
+      
+      // Final safety check for Firestore 1MB limit
+      if (fileData.length > 1000000) {
+        alert('O arquivo ainda é muito grande para o banco de dados (limite de 1MB). Por favor, tente tirar uma foto com menor resolução ou use um compressor de PDF.');
+        setIsProcessing(null);
+        return;
+      }
+
       const result = await classifyDocument(base64Data);
       
       const newDoc: ClientDocument = {
@@ -212,7 +240,7 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
         type: category,
         status: DocumentStatus.UPLOADED,
         fileName: file.name,
-        fileData: reader.result as string,
+        fileData: fileData,
         uploadDate: new Date().toISOString().split('T')[0],
         confidence: result.confidence
       };
@@ -224,7 +252,11 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
       }
       
       setIsProcessing(null);
-    };
+    } catch (err: any) {
+      console.error("Upload error:", err);
+      setIsProcessing(null);
+      alert(`Erro ao enviar: ${err.message || 'Erro desconhecido'}`);
+    }
   };
 
   return (

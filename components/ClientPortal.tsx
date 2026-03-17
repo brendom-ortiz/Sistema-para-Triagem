@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { doc, getDoc, collection, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, collection, onSnapshot, addDoc } from 'firebase/firestore';
 import { Client, ClientDocument, DocumentType, DocumentStatus } from '../types';
 import { classifyDocument } from '../services/geminiService';
+import { compressImage } from '../services/imageService';
 
 interface ClientPortalProps {
   clientId: string;
@@ -26,6 +27,10 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ clientId }) => {
         setError('Cliente não encontrado.');
       }
       setLoading(false);
+    }).catch(err => {
+      console.error("Error fetching client:", err);
+      setError('Erro ao carregar dados do cliente.');
+      setLoading(false);
     });
 
     // Listen to documents
@@ -33,6 +38,8 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ clientId }) => {
     const unsubscribe = onSnapshot(docsRef, (snapshot) => {
       const docsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ClientDocument));
       setDocuments(docsData);
+    }, (err) => {
+      console.error("Firestore snapshot error:", err);
     });
 
     return () => unsubscribe();
@@ -42,47 +49,61 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ clientId }) => {
     const file = e.target.files?.[0];
     if (!file || !client) return;
 
+    // Check file size for non-images (PDFs)
+    if (!file.type.startsWith('image/') && file.size > 1000000) {
+      alert('Arquivos PDF devem ter menos de 1MB. Por favor, comprima o arquivo ou envie uma foto.');
+      return;
+    }
+
     setUploading(type);
     try {
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        try {
-          const base64 = event.target?.result as string;
-          const base64Data = base64.split(',')[1];
-          
-          console.log("Analyzing document with Gemini...");
-          // Analyze with Gemini - wrap in try/catch to not block upload if AI fails
-          let analysis = { type: type, confidence: 0 };
-          try {
-            analysis = await classifyDocument(base64Data);
-          } catch (aiErr) {
-            console.warn("AI Classification failed, using default type:", aiErr);
-          }
-          
-          const newDoc: Omit<ClientDocument, 'id'> = {
-            type: analysis.type || type,
-            status: DocumentStatus.UPLOADED,
-            fileName: file.name,
-            fileData: base64,
-            uploadDate: new Date().toISOString().split('T')[0],
-            confidence: analysis.confidence || 0
-          };
+      let fileData: string;
+      
+      if (file.type.startsWith('image/')) {
+        console.log("Compressing image...");
+        fileData = await compressImage(file);
+      } else {
+        // For PDFs, just read as base64
+        fileData = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (event) => resolve(event.target?.result as string);
+          reader.onerror = (err) => reject(err);
+          reader.readAsDataURL(file);
+        });
+      }
 
-          console.log("Saving document to Firestore...");
-          await addDoc(collection(db, 'clients', clientId, 'documents'), newDoc);
-          console.log("Document saved successfully");
-          setUploading(null);
-        } catch (innerErr: any) {
-          console.error("Error processing file:", innerErr);
-          alert(`Erro ao processar arquivo: ${innerErr.message || 'Erro desconhecido'}`);
-          setUploading(null);
-        }
-      };
-      reader.onerror = () => {
-        alert("Erro ao ler o arquivo do seu dispositivo.");
+      const base64Data = fileData.split(',')[1];
+      
+      // Final safety check for Firestore 1MB limit (approx 1,048,576 bytes)
+      // Base64 is ~33% larger than binary, so 1MB limit is roughly 1.3MB of base64 string
+      if (fileData.length > 1000000) {
+        alert('O arquivo ainda é muito grande para o banco de dados (limite de 1MB). Por favor, tente tirar uma foto com menor resolução ou use um compressor de PDF.');
         setUploading(null);
+        return;
+      }
+      
+      console.log("Analyzing document with Gemini...");
+      // Analyze with Gemini - wrap in try/catch to not block upload if AI fails
+      let analysis = { type: type, confidence: 0 };
+      try {
+        analysis = await classifyDocument(base64Data);
+      } catch (aiErr) {
+        console.warn("AI Classification failed, using default type:", aiErr);
+      }
+      
+      const newDoc: Omit<ClientDocument, 'id'> = {
+        type: analysis.type || type,
+        status: DocumentStatus.UPLOADED,
+        fileName: file.name,
+        fileData: fileData,
+        uploadDate: new Date().toISOString().split('T')[0],
+        confidence: analysis.confidence || 0
       };
-      reader.readAsDataURL(file);
+
+      console.log("Saving document to Firestore...");
+      await addDoc(collection(db, 'clients', clientId, 'documents'), newDoc);
+      console.log("Document saved successfully");
+      setUploading(null);
     } catch (err: any) {
       console.error("Upload error:", err);
       setUploading(null);
