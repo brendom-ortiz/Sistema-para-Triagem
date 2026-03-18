@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Client, DocumentType } from '../types';
+import { Client, DocumentType, DocumentCategory } from '../types';
 
 interface DocumentManagementProps {
   clients: Client[];
@@ -23,13 +23,17 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ clients }) => {
     c.quota.includes(searchTerm)
   );
 
-  const categories = [
+  const defaultCategories = [
     DocumentType.ID,
     DocumentType.RESIDENCE,
     DocumentType.INCOME,
     DocumentType.CONTRACT,
     DocumentType.REQUEST_EMAIL
   ];
+
+  const allRequiredTypes = Array.from(new Set(clients.flatMap(c => c.requiredDocumentTypes))) as DocumentCategory[];
+  const allUploadedTypes = Array.from(new Set(clients.flatMap(c => c.documents.map(d => d.type)))) as DocumentCategory[];
+  const categories: DocumentCategory[] = Array.from(new Set([...defaultCategories, ...allRequiredTypes, ...allUploadedTypes])) as DocumentCategory[];
 
   const handleSelectAll = () => {
     if (selectedIds.size === displayedClients.length) {
@@ -201,7 +205,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ clients }) => {
                       <div className="flex flex-wrap gap-1.5 max-w-xs">
                         {getMissingDocs(client).map(doc => (
                           <span key={doc} className="px-2 py-0.5 bg-red-50 text-red-600 text-[8px] font-black uppercase rounded border border-red-100">
-                            {doc.split(' ')[0]}
+                            {(doc as string).split(' ')[0]}
                           </span>
                         ))}
                       </div>

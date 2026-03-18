@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Client, DocumentStatus, DocumentType, ClientDocument, Analyst } from './types';
+import { Client, DocumentStatus, DocumentType, ClientDocument, Analyst, DocumentCategory } from './types';
 import ClientList from './components/ClientList';
 import ClientDetails from './components/ClientDetails';
 import Header from './components/Header';
@@ -124,7 +124,7 @@ const App: React.FC = () => {
   const selectedClient = clients.find(c => c.id === selectedClientId);
   const selectedClientWithDocs = selectedClient ? { ...selectedClient, documents: selectedClientDocuments } : null;
 
-  const calculateProgress = (docs: ClientDocument[], requiredTypes: DocumentType[]) => {
+  const calculateProgress = (docs: ClientDocument[], requiredTypes: DocumentCategory[]) => {
     if (requiredTypes.length === 0) return 100;
     const completedTypes = requiredTypes.filter(type => 
       docs.some(doc => doc.type === type && doc.status === DocumentStatus.UPLOADED)
@@ -215,7 +215,7 @@ const App: React.FC = () => {
     await updateDoc(doc(db, 'clients', clientId), updates);
   };
 
-  const handleToggleRequirement = async (clientId: string, docType: DocumentType) => {
+  const handleToggleRequirement = async (clientId: string, docType: DocumentCategory) => {
     const client = clients.find(c => c.id === clientId);
     if (!client) return;
 

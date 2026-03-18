@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Client, DocumentStatus, DocumentType, ClientDocument, Analyst } from '../types';
+import { Client, DocumentStatus, DocumentType, ClientDocument, Analyst, DocumentCategory } from '../types';
 import { classifyDocument } from '../services/geminiService';
 import { compressImage } from '../services/imageService';
 import JSZip from 'jszip';
@@ -12,7 +12,7 @@ interface ClientDetailsProps {
   onRemoveDocument: (docId: string) => void;
   onUpdateClientInfo: (updates: Partial<Client>) => void;
   onDeleteClient: () => void;
-  onToggleRequirement: (docType: DocumentType) => void;
+  onToggleRequirement: (docType: DocumentCategory) => void;
 }
 
 const ClientDetails: React.FC<ClientDetailsProps> = ({ 
@@ -24,9 +24,11 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
   onDeleteClient,
   onToggleRequirement
 }) => {
-  const [isProcessing, setIsProcessing] = useState<DocumentType | null>(null);
+  const [isProcessing, setIsProcessing] = useState<DocumentCategory | null>(null);
   const [isFinalizing, setIsFinalizing] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [isAddingCustom, setIsAddingCustom] = useState(false);
+  const [customRequirement, setCustomRequirement] = useState('');
   const [viewingDoc, setViewingDoc] = useState<ClientDocument | null>(null);
   const [editForm, setEditForm] = useState({
     name: '',
@@ -35,18 +37,30 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
     group: '',
     quota: '',
     consortiumType: '',
+    clientType: 'PF' as 'PF' | 'PJ',
     analystName: '',
     analystEmail: '',
     analystContemplation: ''
   });
 
-  const categories = [
+  const defaultCategories = [
     DocumentType.ID,
     DocumentType.RESIDENCE,
     DocumentType.INCOME,
     DocumentType.CONTRACT,
     DocumentType.REQUEST_EMAIL
   ];
+
+  // Combine default categories with any custom ones already in the client's required list or that have documents
+  const categoriesWithDocs = client.documents.map(d => d.type);
+  const allCategories = Array.from(new Set([...defaultCategories, ...client.requiredDocumentTypes, ...categoriesWithDocs]));
+
+  const handleAddCustomRequirement = () => {
+    if (!customRequirement.trim()) return;
+    onToggleRequirement(customRequirement.trim());
+    setCustomRequirement('');
+    setIsAddingCustom(false);
+  };
 
   const consortiumOptions = ['Imobiliário', 'Automotivo', 'Pesados', 'Serviços', 'Motos', 'Consórcio de Ouro', 'Outros Bens'];
 
@@ -58,6 +72,7 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
       group: client.group,
       quota: client.quota,
       consortiumType: client.consortiumType,
+      clientType: client.clientType,
       analystName: client.analystName,
       analystEmail: client.analystEmail || `${client.analystName.toLowerCase().replace(/\s+/g, '.')}@consorcioancora.com.br`,
       analystContemplation: client.analystContemplation
@@ -96,7 +111,7 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
   };
 
   const handleCobrarDocumentos = () => {
-    const missingDocs = categories.filter(cat => 
+    const missingDocs = allCategories.filter(cat => 
       client.requiredDocumentTypes.includes(cat) && 
       !client.documents.some(d => d.type === cat)
     );
@@ -161,7 +176,7 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
       const statusText = client.progress === 100 ? "COMPLETA" : `PARCIAL (${client.progress}%)`;
       const subject = encodeURIComponent(`[TRIAGEM ANCORADA] Documentação ${statusText} - ${client.name} (G: ${client.group} / C: ${client.quota})`);
       
-      const missingDocsList = categories
+      const missingDocsList = allCategories
         .filter(cat => client.requiredDocumentTypes.includes(cat) && !client.documents.some(d => d.type === cat))
         .map(cat => `- ${cat}`)
         .join('\r\n');
@@ -295,10 +310,11 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
                   </div>
                   <button 
                     onClick={() => setIsEditing(true)}
-                    className="ml-2 p-2 text-gray-300 hover:text-blue-600 hover:bg-gray-50 rounded-full transition-all"
+                    className="ml-auto flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-blue-50 text-gray-500 hover:text-blue-600 rounded-xl text-xs font-black uppercase tracking-widest transition-all border border-transparent hover:border-blue-100"
                     title="Editar ou Transferir"
                   >
-                    <i className="fa-solid fa-pen-to-square text-lg"></i>
+                    <i className="fa-solid fa-pen-to-square"></i>
+                    Editar Cadastro
                   </button>
                 </div>
                 
@@ -311,12 +327,47 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full pr-12 animate-slideUp">
                 <div className="col-span-1 md:col-span-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Nome Completo</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Nome / Razão Social</label>
                   <input type="text" className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold" value={editForm.name} onChange={(e) => setEditForm({...editForm, name: e.target.value})} />
                 </div>
                 <div className="col-span-1 md:col-span-2">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">E-mail do Cliente</label>
                   <input type="email" className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold" value={editForm.email} onChange={(e) => setEditForm({...editForm, email: e.target.value})} />
+                </div>
+
+                <div className="col-span-1">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Tipo</label>
+                  <select 
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold appearance-none outline-none"
+                    value={editForm.clientType}
+                    onChange={(e) => setEditForm({...editForm, clientType: e.target.value as 'PF' | 'PJ'})}
+                  >
+                    <option value="PF">Pessoa Física (PF)</option>
+                    <option value="PJ">Pessoa Jurídica (PJ)</option>
+                  </select>
+                </div>
+                <div className="col-span-1">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{editForm.clientType === 'PF' ? 'CPF' : 'CNPJ'}</label>
+                  <input type="text" className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold" value={editForm.cpf} onChange={(e) => setEditForm({...editForm, cpf: e.target.value})} />
+                </div>
+                <div className="col-span-1">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Grupo</label>
+                  <input type="text" className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold" value={editForm.group} onChange={(e) => setEditForm({...editForm, group: e.target.value})} />
+                </div>
+                <div className="col-span-1">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Cota</label>
+                  <input type="text" className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold" value={editForm.quota} onChange={(e) => setEditForm({...editForm, quota: e.target.value})} />
+                </div>
+
+                <div className="col-span-full">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Tipo de Consórcio</label>
+                  <select 
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold appearance-none outline-none"
+                    value={editForm.consortiumType}
+                    onChange={(e) => setEditForm({...editForm, consortiumType: e.target.value})}
+                  >
+                    {consortiumOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
                 </div>
                 
                 <div className="col-span-full border-t border-gray-100 pt-4 mt-2">
@@ -405,11 +456,51 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
         )}
       </div>
 
+      <div className="flex items-center justify-between mb-8">
+        <h2 className="text-2xl font-black text-gray-800 tracking-tight uppercase">Checklist de Documentos</h2>
+        <button 
+          onClick={() => setIsAddingCustom(true)}
+          className="bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg shadow-blue-100"
+        >
+          <i className="fa-solid fa-plus"></i>
+          Novo Requisito
+        </button>
+      </div>
+
+      {isAddingCustom && (
+        <div className="mb-8 bg-blue-50 p-6 rounded-3xl border-2 border-blue-100 animate-fadeIn">
+          <h4 className="text-xs font-black text-blue-600 uppercase tracking-widest mb-4">Adicionar Novo Requisito Personalizado</h4>
+          <div className="flex gap-3">
+            <input 
+              type="text" 
+              value={customRequirement}
+              onChange={(e) => setCustomRequirement(e.target.value)}
+              placeholder="Ex: Certidão de Casamento, Contrato Social..."
+              className="flex-1 bg-white border-2 border-blue-100 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-blue-400"
+              autoFocus
+            />
+            <button 
+              onClick={handleAddCustomRequirement}
+              className="bg-blue-600 text-white px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-blue-700 transition-all"
+            >
+              Adicionar
+            </button>
+            <button 
+              onClick={() => setIsAddingCustom(false)}
+              className="bg-gray-200 text-gray-500 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-gray-300 transition-all"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-6">
-        {categories.map((category) => {
+        {allCategories.map((category) => {
           const categoryDocs = client.documents.filter(d => d.type === category);
           const isComplete = categoryDocs.length > 0;
           const isRequired = client.requiredDocumentTypes.includes(category);
+          const isDefault = defaultCategories.includes(category as DocumentType);
           
           return (
             <div key={category} className={`bg-white rounded-3xl border-2 p-8 transition-all duration-300 shadow-sm ${!isRequired ? 'border-gray-50 opacity-80' : isComplete ? 'border-emerald-100' : 'border-gray-100 hover:border-gray-200'}`}>
@@ -420,7 +511,8 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
                       category === DocumentType.ID ? 'fa-address-card' :
                       category === DocumentType.RESIDENCE ? 'fa-house' :
                       category === DocumentType.INCOME ? 'fa-receipt' : 
-                      category === DocumentType.CONTRACT ? 'fa-file-signature' : 'fa-envelope-open-text'
+                      category === DocumentType.CONTRACT ? 'fa-file-signature' : 
+                      category === DocumentType.REQUEST_EMAIL ? 'fa-envelope-open-text' : 'fa-file-circle-plus'
                     }`}></i>
                   </div>
                   <div>

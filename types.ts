@@ -14,9 +14,11 @@ export enum DocumentType {
   UNKNOWN = 'Desconhecido'
 }
 
+export type DocumentCategory = DocumentType | string;
+
 export interface ClientDocument {
   id: string;
-  type: DocumentType;
+  type: DocumentCategory;
   aiType?: string; // AI's classification
   status: DocumentStatus;
   fileName?: string;
@@ -46,6 +48,6 @@ export interface Client {
   analystContemplation: string; 
   progress: number;
   documents: ClientDocument[];
-  requiredDocumentTypes: DocumentType[];
-  uploadedDocumentTypes: DocumentType[]; // New field for caching
+  requiredDocumentTypes: DocumentCategory[];
+  uploadedDocumentTypes: DocumentCategory[]; // New field for caching
 }

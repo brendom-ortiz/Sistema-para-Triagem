@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db, auth } from '../firebase';
 import { doc, getDoc, collection, onSnapshot, addDoc, updateDoc } from 'firebase/firestore';
-import { Client, ClientDocument, DocumentType, DocumentStatus } from '../types';
+import { Client, ClientDocument, DocumentType, DocumentStatus, DocumentCategory } from '../types';
 import { classifyDocument } from '../services/geminiService';
 import { compressImage } from '../services/imageService';
 
@@ -13,7 +13,7 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ clientId }) => {
   const [client, setClient] = useState<Client | null>(null);
   const [documents, setDocuments] = useState<ClientDocument[]>([]);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState<DocumentType | null>(null);
+  const [uploading, setUploading] = useState<DocumentCategory | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -69,7 +69,7 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ clientId }) => {
     }
   }, [client?.requiredDocumentTypes, documents, clientId, client?.progress, client?.name]);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: DocumentType) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: DocumentCategory) => {
     const file = e.target.files?.[0];
     if (!file || !client) return;
 
