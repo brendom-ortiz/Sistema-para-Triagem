@@ -249,6 +249,10 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
       onAddDocument(newDoc);
       alert("Documento adicionado com sucesso!");
 
+      if (event.target) {
+        (event.target as HTMLInputElement).value = '';
+      }
+
       if (result.type !== category && result.type !== DocumentType.UNKNOWN) {
         alert(`Aviso de IA: O documento parece ser um "${result.type}", mas você está salvando em "${category}". Verifique se está correto.`);
       }
@@ -257,6 +261,9 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
     } catch (err: any) {
       console.error("Upload error:", err);
       setIsProcessing(null);
+      if (event.target) {
+        (event.target as HTMLInputElement).value = '';
+      }
       alert(`Erro ao enviar: ${err.message || 'Erro desconhecido'}`);
     }
   };

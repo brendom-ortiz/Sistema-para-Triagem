@@ -141,9 +141,17 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ clientId }) => {
       console.log("Document saved successfully");
       alert("Documento enviado com sucesso!");
       setUploading(null);
+      
+      // Clear input value to allow re-uploading the same file
+      if (event.target) {
+        (event.target as HTMLInputElement).value = '';
+      }
     } catch (err: any) {
       console.error("Upload error:", err);
       setUploading(null);
+      if (event.target) {
+        (event.target as HTMLInputElement).value = '';
+      }
       alert(`Erro ao enviar: ${err.message || 'Verifique sua conexão'}`);
     }
   };
@@ -230,7 +238,8 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ clientId }) => {
 
             <div className="space-y-4">
               {client.requiredDocumentTypes.map((type) => {
-                const isUploaded = (client.uploadedDocumentTypes || []).includes(type);
+                const categoryDocs = documents.filter(d => d.type === type);
+                const isUploaded = categoryDocs.length > 0;
 
                 return (
                   <div 
@@ -249,35 +258,44 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ clientId }) => {
                         <div>
                           <p className="font-medium text-gray-800 text-sm">{type}</p>
                           <p className="text-[10px] uppercase font-bold tracking-wider text-gray-400">
-                            {isUploaded ? 'Enviado' : 'Pendente'}
+                            {isUploaded ? `${categoryDocs.length} arquivo(s) enviado(s)` : 'Pendente'}
                           </p>
                         </div>
                       </div>
 
-                      {!isUploaded ? (
-                        <label className="cursor-pointer">
-                          <input 
-                            type="file" 
-                            className="hidden" 
-                            onChange={(e) => handleFileUpload(e, type)}
-                            disabled={uploading === type}
-                            accept="image/*,application/pdf"
-                          />
-                          <div className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                            uploading === type 
-                              ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
+                      <label className="cursor-pointer">
+                        <input 
+                          type="file" 
+                          className="hidden" 
+                          onChange={(e) => handleFileUpload(e, type)}
+                          disabled={uploading === type}
+                          accept="image/*,application/pdf"
+                        />
+                        <div className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                          uploading === type 
+                            ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
+                            : isUploaded 
+                              ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm'
                               : 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
-                          }`}>
-                            {uploading === type ? 'Enviando...' : 'Enviar'}
-                          </div>
-                        </label>
-                      ) : (
-                        <div className="text-emerald-600 text-xs font-bold flex items-center gap-1">
-                          <i className="fa-solid fa-circle-check"></i>
-                          Concluído
+                        }`}>
+                          {uploading === type ? 'Enviando...' : isUploaded ? 'Enviar Mais' : 'Enviar'}
                         </div>
-                      )}
+                      </label>
                     </div>
+                    
+                    {isUploaded && (
+                      <div className="mt-3 pt-3 border-t border-emerald-100/50 space-y-2">
+                        {categoryDocs.map(doc => (
+                          <div key={doc.id} className="flex items-center justify-between text-[10px] text-emerald-700 font-medium">
+                            <span className="truncate max-w-[180px] flex items-center gap-1">
+                              <i className="fa-solid fa-file-circle-check"></i>
+                              {doc.fileName}
+                            </span>
+                            <span className="opacity-60">{doc.uploadDate}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               })}
