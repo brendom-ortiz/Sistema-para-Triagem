@@ -31,9 +31,9 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ clients }) => {
     DocumentType.REQUEST_EMAIL
   ];
 
-  const allRequiredTypes = Array.from(new Set(clients.flatMap(c => c.requiredDocumentTypes))) as DocumentCategory[];
-  const allUploadedTypes = Array.from(new Set(clients.flatMap(c => c.documents.map(d => d.type)))) as DocumentCategory[];
-  const categories: DocumentCategory[] = Array.from(new Set([...defaultCategories, ...allRequiredTypes, ...allUploadedTypes])) as DocumentCategory[];
+  const allRequiredTypes = Array.from(new Set(clients.flatMap(c => c.requiredDocumentTypes || []))) as DocumentCategory[];
+  const allUploadedTypes = Array.from(new Set(clients.flatMap(c => (c.documents || []).map(d => d.type)))) as DocumentCategory[];
+  const categories: DocumentCategory[] = Array.from(new Set([...defaultCategories, ...allRequiredTypes, ...allUploadedTypes])).filter(Boolean) as DocumentCategory[];
 
   const handleSelectAll = () => {
     if (selectedIds.size === displayedClients.length) {
@@ -52,7 +52,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ clients }) => {
 
   const getMissingDocs = (client: Client) => {
     return categories.filter(cat => 
-      client.requiredDocumentTypes.includes(cat) && 
+      (client.requiredDocumentTypes || []).includes(cat) && 
       !(client.uploadedDocumentTypes || []).includes(cat)
     );
   };
@@ -61,26 +61,26 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ clients }) => {
     if (activeTab === 'pendentes') {
       const missing = getMissingDocs(client);
       const docsList = missing.map(d => `- ${d}`).join('\r\n');
-      const subject = encodeURIComponent(`[TRIAGEM ANCORADA] Pendência de Documentos - ${client.name}`);
+      const subject = encodeURIComponent(`[TRIAGEM ANCORADA] Pendência de Documentos - ${client.name || ''}`);
       const body = encodeURIComponent(
-        `Olá, ${client.name}.\r\n\r\n` +
-        `Identificamos que ainda faltam documentos obrigatórios para o seu processo (G: ${client.group} / C: ${client.quota}).\r\n\r\n` +
+        `Olá, ${client.name || ''}.\r\n\r\n` +
+        `Identificamos que ainda faltam documentos obrigatórios para o seu processo (G: ${client.group || ''} / C: ${client.quota || ''}).\r\n\r\n` +
         `DOCUMENTOS PENDENTES:\r\n${docsList}\r\n\r\n` +
         `Por favor, envie-os o quanto antes.\r\n\r\n` +
         `Atenciosamente,\r\nTriagem Ancorada`
       );
-      window.location.href = `mailto:${client.email}?subject=${subject}&body=${body}`;
+      window.location.href = `mailto:${client.email || ''}?subject=${subject}&body=${body}`;
     } else {
-      const subject = encodeURIComponent(`[TRIAGEM ANCORADA] Documentação Concluída - ${client.name}`);
+      const subject = encodeURIComponent(`[TRIAGEM ANCORADA] Documentação Concluída - ${client.name || ''}`);
       const body = encodeURIComponent(
-        `Prezado(a) ${client.analystName},\r\n\r\n` +
-        `A documentação do cliente ${client.name} está completa no sistema Triagem Ancorada.\r\n\r\n` +
-        `DADOS: G: ${client.group} / C: ${client.quota}\r\n` +
+        `Prezado(a) ${client.analystName || ''},\r\n\r\n` +
+        `A documentação do cliente ${client.name || ''} está completa no sistema Triagem Ancorada.\r\n\r\n` +
+        `DADOS: G: ${client.group || ''} / C: ${client.quota || ''}\r\n` +
         `STATUS: 100% CONCLUÍDO\r\n\r\n` +
         `Favor prosseguir com a análise.\r\n\r\n` +
         `Atenciosamente,\r\nPlataforma de Triagem`
       );
-      window.location.href = `mailto:${client.analystEmail}?subject=${subject}&body=${body}`;
+      window.location.href = `mailto:${client.analystEmail || ''}?subject=${subject}&body=${body}`;
     }
   };
 
@@ -88,7 +88,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ clients }) => {
     const selectedClients = clients.filter(c => selectedIds.has(c.id));
     if (selectedClients.length === 0) return;
 
-    if (confirm(`Deseja iniciar o disparo de e-mails para ${selectedClients.length} clientes selecionados? (Serão abertas várias janelas de e-mail sequencialmente)`)) {
+    if (window.confirm(`Deseja iniciar o disparo de e-mails para ${selectedClients.length} clientes selecionados? (Serão abertas várias janelas de e-mail sequencialmente)`)) {
       selectedClients.forEach((c, index) => {
         setTimeout(() => triggerEmail(c), index * 800);
       });
@@ -189,7 +189,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ clients }) => {
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shadow-sm ${
                         client.clientType === 'PF' ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-500'
                       }`}>
-                        {client.name.charAt(0)}
+                        {(client.name || 'C').charAt(0)}
                       </div>
                       <div>
                         <p className="text-sm font-black text-gray-800 group-hover:text-blue-600 transition-colors">{client.name}</p>

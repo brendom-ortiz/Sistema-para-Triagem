@@ -52,8 +52,8 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
   ];
 
   // Combine default categories with any custom ones already in the client's required list or that have documents
-  const categoriesWithDocs = client.documents.map(d => d.type);
-  const allCategories = Array.from(new Set([...defaultCategories, ...client.requiredDocumentTypes, ...categoriesWithDocs]));
+  const categoriesWithDocs = (client.documents || []).map(d => d.type);
+  const allCategories = Array.from(new Set([...defaultCategories, ...(client.requiredDocumentTypes || []), ...categoriesWithDocs])).filter(Boolean) as DocumentCategory[];
 
   const handleAddCustomRequirement = () => {
     if (!customRequirement.trim()) return;
@@ -73,9 +73,9 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
       quota: client.quota,
       consortiumType: client.consortiumType,
       clientType: client.clientType,
-      analystName: client.analystName,
-      analystEmail: client.analystEmail || `${client.analystName.toLowerCase().replace(/\s+/g, '.')}@consorcioancora.com.br`,
-      analystContemplation: client.analystContemplation
+      analystName: client.analystName || '',
+      analystEmail: client.analystEmail || `${(client.analystName || '').toLowerCase().replace(/\s+/g, '.')}@consorcioancora.com.br`,
+      analystContemplation: client.analystContemplation || ''
     });
   }, [client, isEditing]);
 
@@ -112,8 +112,8 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
 
   const handleCobrarDocumentos = () => {
     const missingDocs = allCategories.filter(cat => 
-      client.requiredDocumentTypes.includes(cat) && 
-      !client.documents.some(d => d.type === cat)
+      (client.requiredDocumentTypes || []).includes(cat) && 
+      !(client.documents || []).some(d => d.type === cat)
     );
 
     if (missingDocs.length === 0) {
@@ -177,7 +177,7 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
       const subject = encodeURIComponent(`[TRIAGEM ANCORADA] Documentação ${statusText} - ${client.name} (G: ${client.group} / C: ${client.quota})`);
       
       const missingDocsList = allCategories
-        .filter(cat => client.requiredDocumentTypes.includes(cat) && !client.documents.some(d => d.type === cat))
+        .filter(cat => (client.requiredDocumentTypes || []).includes(cat) && !(client.documents || []).some(d => d.type === cat))
         .map(cat => `- ${cat}`)
         .join('\r\n');
 
@@ -211,7 +211,7 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
     }
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, category: DocumentType) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, category: DocumentCategory) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -497,9 +497,9 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
 
       <div className="grid grid-cols-1 gap-6">
         {allCategories.map((category) => {
-          const categoryDocs = client.documents.filter(d => d.type === category);
+          const categoryDocs = (client.documents || []).filter(d => d.type === category);
           const isComplete = categoryDocs.length > 0;
-          const isRequired = client.requiredDocumentTypes.includes(category);
+          const isRequired = (client.requiredDocumentTypes || []).includes(category);
           const isDefault = defaultCategories.includes(category as DocumentType);
           
           return (

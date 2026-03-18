@@ -16,7 +16,7 @@ const Reports: React.FC<ReportsProps> = ({ clients }) => {
   const totalDocs = clients.reduce((acc, c) => acc + (c.uploadedDocumentTypes?.length || 0), 0);
   const uploadedDocs = totalDocs;
   const pendingDocs = clients.reduce((acc, c) => {
-    const missing = c.requiredDocumentTypes.filter(t => !(c.uploadedDocumentTypes || []).includes(t));
+    const missing = (c.requiredDocumentTypes || []).filter(t => !(c.uploadedDocumentTypes || []).includes(t));
     return acc + missing.length;
   }, 0);
 

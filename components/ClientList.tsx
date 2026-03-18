@@ -15,9 +15,8 @@ const ClientList: React.FC<ClientListProps> = ({ clients, selectedId, onSelect, 
       {clients.length > 0 ? (
         <div className="divide-y divide-gray-100">
           {clients.map((client) => (
-            <div className="relative group/item">
+            <div key={client.id} className="relative group/item">
               <button
-                key={client.id}
                 onClick={() => onSelect(client.id)}
                 className={`w-full text-left p-4 hover:bg-gray-50 transition-colors flex flex-col gap-1 ${
                   selectedId === client.id ? 'bg-blue-50/50 border-r-4 border-blue-500' : ''
