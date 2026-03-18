@@ -50,4 +50,5 @@ export interface Client {
   documents: ClientDocument[];
   requiredDocumentTypes: DocumentCategory[];
   uploadedDocumentTypes: DocumentCategory[]; // New field for caching
+  paymentStatus?: 'PENDING' | 'PAID';
 }

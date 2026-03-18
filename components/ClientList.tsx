@@ -47,6 +47,12 @@ const ClientList: React.FC<ClientListProps> = ({ clients, selectedId, onSelect, 
                     {client.analystName}
                   </span>
                   <span className="text-blue-600 font-medium truncate">{client.consortiumType}</span>
+                  {client.paymentStatus === 'PAID' && (
+                    <span className="bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded flex items-center gap-1 border border-emerald-100">
+                      <i className="fa-solid fa-circle-check text-[9px]"></i>
+                      PAGO
+                    </span>
+                  )}
                 </div>
                 <div className="mt-2 w-full bg-gray-100 h-1 rounded-full overflow-hidden">
                   <div 

@@ -42,7 +42,8 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ onClose, onAdd, analyst
         clientType,
         progress: 0,
         documents: [],
-        requiredDocumentTypes: DEFAULT_REQUIRED
+        requiredDocumentTypes: DEFAULT_REQUIRED,
+        paymentStatus: 'PENDING'
       };
 
       await onAdd(newClient);

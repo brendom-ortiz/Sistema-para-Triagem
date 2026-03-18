@@ -40,7 +40,8 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
     clientType: 'PF' as 'PF' | 'PJ',
     analystName: '',
     analystEmail: '',
-    analystContemplation: ''
+    analystContemplation: '',
+    paymentStatus: 'PENDING' as 'PENDING' | 'PAID'
   });
 
   const defaultCategories = [
@@ -75,7 +76,8 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
       clientType: client.clientType,
       analystName: client.analystName || '',
       analystEmail: client.analystEmail || `${(client.analystName || '').toLowerCase().replace(/\s+/g, '.')}@consorcioancora.com.br`,
-      analystContemplation: client.analystContemplation || ''
+      analystContemplation: client.analystContemplation || '',
+      paymentStatus: client.paymentStatus || 'PENDING'
     });
   }, [client, isEditing]);
 
@@ -308,6 +310,20 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
                     <i className="fa-solid fa-star"></i>
                     Contemplação: {client.analystContemplation}
                   </div>
+                  
+                  <button 
+                    onClick={() => onUpdateClientInfo({ paymentStatus: client.paymentStatus === 'PAID' ? 'PENDING' : 'PAID' })}
+                    className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest transition-all border ${
+                      client.paymentStatus === 'PAID' 
+                        ? 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100' 
+                        : 'bg-gray-50 text-gray-400 border-gray-200 hover:bg-gray-100'
+                    }`}
+                    title={client.paymentStatus === 'PAID' ? 'Marcar como Pendente' : 'Marcar como Pago'}
+                  >
+                    <i className={`fa-solid ${client.paymentStatus === 'PAID' ? 'fa-circle-check' : 'fa-circle-dollar-to-slot'}`}></i>
+                    {client.paymentStatus === 'PAID' ? 'Pago / Enviado' : 'Pendente Pagamento'}
+                  </button>
+
                   <button 
                     onClick={() => setIsEditing(true)}
                     className="ml-auto flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-blue-50 text-gray-500 hover:text-blue-600 rounded-xl text-xs font-black uppercase tracking-widest transition-all border border-transparent hover:border-blue-100"
@@ -367,6 +383,18 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
                     onChange={(e) => setEditForm({...editForm, consortiumType: e.target.value})}
                   >
                     {consortiumOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
+                </div>
+
+                <div className="col-span-full">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Status de Pagamento</label>
+                  <select 
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold appearance-none outline-none"
+                    value={editForm.paymentStatus}
+                    onChange={(e) => setEditForm({...editForm, paymentStatus: e.target.value as 'PENDING' | 'PAID'})}
+                  >
+                    <option value="PENDING">Pendente</option>
+                    <option value="PAID">Pago / Enviado</option>
                   </select>
                 </div>
                 
