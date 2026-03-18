@@ -235,10 +235,10 @@ const App: React.FC = () => {
   };
 
   const filteredClients = clients.filter(c => 
-    c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    c.cpf.includes(searchTerm) ||
-    c.group.includes(searchTerm) ||
-    c.quota.includes(searchTerm)
+    (c.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
+    (c.cpf || '').includes(searchTerm) ||
+    (c.group || '').includes(searchTerm) ||
+    (c.quota || '').includes(searchTerm)
   );
 
   if (isClientPortal && portalClientId) {

@@ -26,9 +26,9 @@ const Segments: React.FC<SegmentsProps> = ({ clients, onSelectClient }) => {
     : [];
 
   const finalFilteredClients = filteredClientsBySegment.filter(c => 
-    c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    c.cpf.includes(searchTerm) ||
-    c.quota.includes(searchTerm)
+    (c.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
+    (c.cpf || '').includes(searchTerm) ||
+    (c.quota || '').includes(searchTerm)
   );
 
   return (

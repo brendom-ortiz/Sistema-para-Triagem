@@ -143,14 +143,14 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ clientId }) => {
       setUploading(null);
       
       // Clear input value to allow re-uploading the same file
-      if (event.target) {
-        (event.target as HTMLInputElement).value = '';
+      if (e.target) {
+        (e.target as HTMLInputElement).value = '';
       }
     } catch (err: any) {
       console.error("Upload error:", err);
       setUploading(null);
-      if (event.target) {
-        (event.target as HTMLInputElement).value = '';
+      if (e.target) {
+        (e.target as HTMLInputElement).value = '';
       }
       alert(`Erro ao enviar: ${err.message || 'Verifique sua conexão'}`);
     }

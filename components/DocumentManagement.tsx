@@ -17,10 +17,10 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ clients }) => {
   const concluidos = clients.filter(c => c.progress === 100);
   
   const displayedClients = (activeTab === 'pendentes' ? pendentes : concluidos).filter(c =>
-    c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.cpf.includes(searchTerm) ||
-    c.group.includes(searchTerm) ||
-    c.quota.includes(searchTerm)
+    (c.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (c.cpf || '').includes(searchTerm) ||
+    (c.group || '').includes(searchTerm) ||
+    (c.quota || '').includes(searchTerm)
   );
 
   const defaultCategories = [

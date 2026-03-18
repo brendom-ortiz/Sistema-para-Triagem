@@ -51,10 +51,10 @@ const AnalystManagement: React.FC<AnalystManagementProps> = ({ analysts, clients
   // Busca global de clientes para localizar analista responsável
   const searchedClients = clientSearchTerm.length > 2 
     ? clients.filter(c => 
-        c.name.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
-        c.cpf.includes(clientSearchTerm) ||
-        c.group.includes(clientSearchTerm) ||
-        c.quota.includes(clientSearchTerm)
+        (c.name?.toLowerCase() || '').includes(clientSearchTerm.toLowerCase()) ||
+        (c.cpf || '').includes(clientSearchTerm) ||
+        (c.group || '').includes(clientSearchTerm) ||
+        (c.quota || '').includes(clientSearchTerm)
       ) 
     : [];
 
