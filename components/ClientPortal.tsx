@@ -116,7 +116,8 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ clientId }) => {
       }
       
       const newDoc: Omit<ClientDocument, 'id'> = {
-        type: analysis.type || type,
+        type: type, // Always use the type the user intended
+        aiType: analysis.type, // Store AI's guess separately
         status: DocumentStatus.UPLOADED,
         fileName: file.name,
         fileData: fileData,
@@ -126,6 +127,17 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ clientId }) => {
 
       console.log(`Saving document to Firestore path: clients/${clientId}/documents`);
       await addDoc(collection(db, 'clients', clientId, 'documents'), newDoc);
+      
+      // Update uploadedDocumentTypes cache on the client document
+      const clientRef = doc(db, 'clients', clientId);
+      const currentUploaded = client.uploadedDocumentTypes || [];
+      if (!currentUploaded.includes(type)) {
+        await updateDoc(clientRef, {
+          uploadedDocumentTypes: [...currentUploaded, type],
+          lastUpdate: new Date().toISOString()
+        });
+      }
+
       console.log("Document saved successfully");
       alert("Documento enviado com sucesso!");
       setUploading(null);
@@ -218,8 +230,7 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ clientId }) => {
 
             <div className="space-y-4">
               {client.requiredDocumentTypes.map((type) => {
-                const doc = documents.find(d => d.type === type);
-                const isUploaded = !!doc;
+                const isUploaded = (client.uploadedDocumentTypes || []).includes(type);
 
                 return (
                   <div 

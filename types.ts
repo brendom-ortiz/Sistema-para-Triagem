@@ -17,6 +17,7 @@ export enum DocumentType {
 export interface ClientDocument {
   id: string;
   type: DocumentType;
+  aiType?: string; // AI's classification
   status: DocumentStatus;
   fileName?: string;
   fileData?: string; // Base64 data for viewing
@@ -46,4 +47,5 @@ export interface Client {
   progress: number;
   documents: ClientDocument[];
   requiredDocumentTypes: DocumentType[];
+  uploadedDocumentTypes: DocumentType[]; // New field for caching
 }

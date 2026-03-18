@@ -238,6 +238,7 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
       const newDoc: ClientDocument = {
         id: Math.random().toString(36).substr(2, 9),
         type: category,
+        aiType: result.type,
         status: DocumentStatus.UPLOADED,
         fileName: file.name,
         fileData: fileData,

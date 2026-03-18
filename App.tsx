@@ -20,6 +20,7 @@ import {
   deleteDoc, 
   addDoc, 
   getDoc,
+  getDocs,
   query, 
   orderBy 
 } from 'firebase/firestore';
@@ -138,7 +139,10 @@ const App: React.FC = () => {
       const { id, documents, ...clientData } = newClient;
       const clientRef = doc(db, 'clients', id);
       console.log("Setting doc at path: clients/", id);
-      await setDoc(clientRef, clientData);
+      await setDoc(clientRef, {
+        ...clientData,
+        uploadedDocumentTypes: []
+      });
       console.log("Doc saved successfully");
       setSelectedClientId(id);
       setIsAddModalOpen(false);
@@ -167,12 +171,44 @@ const App: React.FC = () => {
     const { id, ...docData } = newDoc;
     await addDoc(collection(db, 'clients', clientId, 'documents'), docData);
     
-    // Progress will be updated by the onSnapshot listener for documents
+    // Update uploadedDocumentTypes cache on the client
+    const clientRef = doc(db, 'clients', clientId);
+    const docSnap = await getDoc(clientRef);
+    if (docSnap.exists()) {
+      const currentUploaded = (docSnap.data() as Client).uploadedDocumentTypes || [];
+      if (!currentUploaded.includes(newDoc.type)) {
+        await updateDoc(clientRef, {
+          uploadedDocumentTypes: [...currentUploaded, newDoc.type]
+        });
+      }
+    }
   };
 
   const handleRemoveDocument = async (clientId: string, docId: string) => {
-    await deleteDoc(doc(db, 'clients', clientId, 'documents', docId));
-    // Progress will be updated by the onSnapshot listener for documents
+    const docRef = doc(db, 'clients', clientId, 'documents', docId);
+    const docSnap = await getDoc(docRef);
+    const typeToRemove = docSnap.exists() ? (docSnap.data() as ClientDocument).type : null;
+    
+    await deleteDoc(docRef);
+    
+    if (typeToRemove) {
+      // Re-check if any other document of this type exists
+      const docsRef = collection(db, 'clients', clientId, 'documents');
+      const q = query(docsRef);
+      const remainingDocsSnap = await getDocs(q);
+      const stillHasType = remainingDocsSnap.docs.some(d => (d.data() as ClientDocument).type === typeToRemove);
+      
+      if (!stillHasType) {
+        const clientRef = doc(db, 'clients', clientId);
+        const clientSnap = await getDoc(clientRef);
+        if (clientSnap.exists()) {
+          const currentUploaded = (clientSnap.data() as Client).uploadedDocumentTypes || [];
+          await updateDoc(clientRef, {
+            uploadedDocumentTypes: currentUploaded.filter(t => t !== typeToRemove)
+          });
+        }
+      }
+    }
   };
 
   const handleUpdateClientInfo = async (clientId: string, updates: Partial<Client>) => {

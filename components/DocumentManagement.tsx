@@ -49,7 +49,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ clients }) => {
   const getMissingDocs = (client: Client) => {
     return categories.filter(cat => 
       client.requiredDocumentTypes.includes(cat) && 
-      !client.documents.some(d => d.type === cat)
+      !(client.uploadedDocumentTypes || []).includes(cat)
     );
   };
 

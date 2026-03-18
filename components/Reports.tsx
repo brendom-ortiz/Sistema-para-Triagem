@@ -13,9 +13,12 @@ const Reports: React.FC<ReportsProps> = ({ clients }) => {
     ? clients.reduce((acc, c) => acc + c.progress, 0) / totalClients 
     : 0;
   
-  const totalDocs = clients.reduce((acc, c) => acc + c.documents.length, 0);
-  const uploadedDocs = clients.reduce((acc, c) => acc + c.documents.filter(d => d.status === DocumentStatus.UPLOADED).length, 0);
-  const pendingDocs = totalDocs - uploadedDocs;
+  const totalDocs = clients.reduce((acc, c) => acc + (c.uploadedDocumentTypes?.length || 0), 0);
+  const uploadedDocs = totalDocs;
+  const pendingDocs = clients.reduce((acc, c) => {
+    const missing = c.requiredDocumentTypes.filter(t => !(c.uploadedDocumentTypes || []).includes(t));
+    return acc + missing.length;
+  }, 0);
 
   const analystStats = clients.reduce((acc: any, c) => {
     if (!acc[c.analystName]) acc[c.analystName] = { count: 0, completed: 0 };
