@@ -328,7 +328,7 @@ const App: React.FC = () => {
               onUpdateClientInfo={handleUpdateClientInfo}
             />
           )}
-          {activeView === 'management' && <DocumentManagement clients={clients} />}
+          {activeView === 'management' && <DocumentManagement clients={clients} onUpdateClientInfo={handleUpdateClientInfo} />}
         </main>
 
         {isAddModalOpen && (

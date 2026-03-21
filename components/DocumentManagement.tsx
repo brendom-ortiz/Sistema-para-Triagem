@@ -4,11 +4,12 @@ import { Client, DocumentType, DocumentCategory } from '../types';
 
 interface DocumentManagementProps {
   clients: Client[];
+  onUpdateClientInfo: (id: string, updates: Partial<Client>) => void;
 }
 
 type FilterType = 'pendentes' | 'concluidos';
 
-const DocumentManagement: React.FC<DocumentManagementProps> = ({ clients }) => {
+const DocumentManagement: React.FC<DocumentManagementProps> = ({ clients, onUpdateClientInfo }) => {
   const [activeTab, setActiveTab] = useState<FilterType>('pendentes');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState('');
@@ -57,18 +58,27 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({ clients }) => {
     );
   };
 
+  const getPortalUrl = (client: Client) => {
+    const baseUrl = window.location.origin + window.location.pathname;
+    return `${baseUrl}?clientId=${client.id}`;
+  };
+
   const triggerEmail = (client: Client) => {
     if (activeTab === 'pendentes') {
       const missing = getMissingDocs(client);
       const docsList = missing.map(d => `- ${d}`).join('\r\n');
+      const portalUrl = getPortalUrl(client);
       const subject = encodeURIComponent(`[TRIAGEM ANCORADA] Pendência de Documentos - ${client.name || ''}`);
       const body = encodeURIComponent(
         `Olá, ${client.name || ''}.\r\n\r\n` +
         `Identificamos que ainda faltam documentos obrigatórios para o seu processo (G: ${client.group || ''} / C: ${client.quota || ''}).\r\n\r\n` +
         `DOCUMENTOS PENDENTES:\r\n${docsList}\r\n\r\n` +
+        `Você pode enviar os documentos diretamente pelo nosso portal seguro clicando no link abaixo:\r\n` +
+        `${portalUrl}\r\n\r\n` +
         `Por favor, envie-os o quanto antes.\r\n\r\n` +
         `Atenciosamente,\r\nTriagem Ancorada`
       );
+      onUpdateClientInfo(client.id, { linkSentDate: new Date().toISOString() });
       window.location.href = `mailto:${client.email || ''}?subject=${subject}&body=${body}`;
     } else {
       const subject = encodeURIComponent(`[TRIAGEM ANCORADA] Documentação Concluída - ${client.name || ''}`);
