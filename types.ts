@@ -46,9 +46,12 @@ export interface Client {
   analystName: string;
   analystEmail: string; 
   analystContemplation: string; 
+  analystContemplationEmail?: string; 
   progress: number;
   documents: ClientDocument[];
   requiredDocumentTypes: DocumentCategory[];
   uploadedDocumentTypes: DocumentCategory[]; // New field for caching
   paymentStatus?: 'PENDING' | 'PAID';
+  linkSentDate?: string; // Date when the upload link was sent to the client
+  lastViewedDocsCount?: number; // To track new document notifications
 }

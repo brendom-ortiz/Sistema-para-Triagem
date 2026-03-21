@@ -22,7 +22,8 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ onClose, onAdd, analyst
     quota: '',
     analystName: '',
     analystEmail: '',
-    analystContemplation: ''
+    analystContemplation: '',
+    analystContemplationEmail: ''
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -58,6 +59,15 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ onClose, onAdd, analyst
       ...formData,
       analystName: name,
       analystEmail: selected ? selected.email : ''
+    });
+  };
+
+  const handleContemplationAnalystChange = (name: string) => {
+    const selected = analysts.find(a => a.name === name);
+    setFormData({
+      ...formData,
+      analystContemplation: name,
+      analystContemplationEmail: selected ? selected.email : ''
     });
   };
 
@@ -204,7 +214,7 @@ const AddClientModal: React.FC<AddClientModalProps> = ({ onClose, onAdd, analyst
                     <select 
                       className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium appearance-none"
                       value={formData.analystContemplation}
-                      onChange={(e) => setFormData({...formData, analystContemplation: e.target.value})}
+                      onChange={(e) => handleContemplationAnalystChange(e.target.value)}
                     >
                       <option value="">Selecione um analista...</option>
                       {analysts.filter(a => a.role === 'Contemplação' || a.role === 'Ambos').map(a => (

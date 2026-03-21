@@ -41,18 +41,28 @@ const ClientList: React.FC<ClientListProps> = ({ clients, selectedId, onSelect, 
                   <span>{client.clientType === 'PF' ? 'CPF' : 'CNPJ'}: {client.cpf}</span>
                   <span className="font-medium text-gray-700">G: {client.group} / C: {client.quota}</span>
                 </div>
-                <div className="flex items-center gap-1.5 mt-1 text-[10px] pl-8">
-                  <span className="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded flex items-center gap-1">
-                    <i className="fa-solid fa-user-tie text-[9px]"></i>
-                    {client.analystName}
-                  </span>
-                  <span className="text-blue-600 font-medium truncate">{client.consortiumType}</span>
-                  {client.paymentStatus === 'PAID' && (
-                    <span className="bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded flex items-center gap-1 border border-emerald-100">
-                      <i className="fa-solid fa-circle-check text-[9px]"></i>
-                      PAGO
+                <div className="flex flex-wrap items-center gap-1.5 mt-1 text-[10px] pl-8">
+                  <div className="flex flex-col gap-1">
+                    <span className={`px-1.5 py-0.5 rounded flex items-center gap-1 w-fit ${client.analystName ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-gray-50 text-gray-400 border border-gray-100'}`}>
+                      <i className={`fa-solid ${client.analystName ? 'fa-user-tie' : 'fa-user-slash'} text-[9px]`}></i>
+                      <span className="font-black uppercase text-[8px] mr-1">CAD:</span>
+                      {client.analystName || 'Não Atribuído'}
                     </span>
-                  )}
+                    <span className={`px-1.5 py-0.5 rounded flex items-center gap-1 w-fit ${client.analystContemplation ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-gray-50 text-gray-400 border border-gray-100'}`}>
+                      <i className={`fa-solid ${client.analystContemplation ? 'fa-user-tie' : 'fa-user-slash'} text-[9px]`}></i>
+                      <span className="font-black uppercase text-[8px] mr-1">CON:</span>
+                      {client.analystContemplation || 'Não Atribuído'}
+                    </span>
+                  </div>
+                  <div className="ml-auto flex flex-col items-end gap-1">
+                    <span className="text-blue-600 font-black uppercase text-[9px] tracking-widest">{client.consortiumType}</span>
+                    {client.paymentStatus === 'PAID' && (
+                      <span className="bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded flex items-center gap-1 border border-emerald-100 font-black text-[8px] uppercase tracking-widest">
+                        <i className="fa-solid fa-circle-check text-[9px]"></i>
+                        PAGO
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="mt-2 w-full bg-gray-100 h-1 rounded-full overflow-hidden">
                   <div 

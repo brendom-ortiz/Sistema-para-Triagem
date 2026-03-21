@@ -41,6 +41,7 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
     analystName: '',
     analystEmail: '',
     analystContemplation: '',
+    analystContemplationEmail: '',
     paymentStatus: 'PENDING' as 'PENDING' | 'PAID'
   });
 
@@ -66,6 +67,13 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
   const consortiumOptions = ['Imobiliário', 'Automotivo', 'Pesados', 'Serviços', 'Motos', 'Consórcio de Ouro', 'Outros Bens'];
 
   useEffect(() => {
+    // Clear "new documents" notification when viewing client details
+    if (client.documents && (client.documents.length !== client.lastViewedDocsCount)) {
+      onUpdateClientInfo({ lastViewedDocsCount: client.documents.length });
+    }
+  }, [client.id, client.documents?.length]);
+
+  useEffect(() => {
     setEditForm({
       name: client.name,
       email: client.email || '',
@@ -77,6 +85,7 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
       analystName: client.analystName || '',
       analystEmail: client.analystEmail || `${(client.analystName || '').toLowerCase().replace(/\s+/g, '.')}@consorcioancora.com.br`,
       analystContemplation: client.analystContemplation || '',
+      analystContemplationEmail: client.analystContemplationEmail || `${(client.analystContemplation || '').toLowerCase().replace(/\s+/g, '.')}@consorcioancora.com.br`,
       paymentStatus: client.paymentStatus || 'PENDING'
     });
   }, [client, isEditing]);
@@ -95,6 +104,15 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
     });
   };
 
+  const handleContemplationAnalystTransfer = (name: string) => {
+    const selected = analysts.find(a => a.name === name);
+    setEditForm({
+      ...editForm,
+      analystContemplation: name,
+      analystContemplationEmail: selected ? selected.email : editForm.analystContemplationEmail
+    });
+  };
+
   const handleDeleteConfirm = () => {
     if (window.confirm(`Tem certeza que deseja excluir permanentemente o cadastro de ${client.name}? Esta ação não pode ser desfeita.`)) {
       onDeleteClient();
@@ -109,6 +127,7 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
   const handleCopyLink = () => {
     const url = getPortalUrl();
     navigator.clipboard.writeText(url);
+    onUpdateClientInfo({ linkSentDate: new Date().toISOString() });
     alert("Link de upload copiado para a área de transferência!");
   };
 
@@ -139,6 +158,7 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
     );
 
     const mailtoUrl = `mailto:${client.email}?subject=${subject}&body=${body}`;
+    onUpdateClientInfo({ linkSentDate: new Date().toISOString() });
     window.location.href = mailtoUrl;
   };
 
@@ -198,7 +218,12 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
         `Plataforma Triagem Ancorada`
       );
 
-      const mailtoUrl = `mailto:${client.analystEmail}?subject=${subject}&body=${body}`;
+      const recipients = [client.analystEmail];
+      if (client.analystContemplationEmail && client.analystContemplationEmail !== client.analystEmail) {
+        recipients.push(client.analystContemplationEmail);
+      }
+
+      const mailtoUrl = `mailto:${recipients.join(',')}?subject=${subject}&body=${body}`;
 
       setTimeout(() => {
         setIsFinalizing(false);
@@ -306,9 +331,15 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
                   <span className="px-3 py-1 bg-blue-50 text-blue-600 text-xs font-black rounded-full uppercase border border-blue-100">
                     {client.consortiumType}
                   </span>
-                  <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-700 text-xs font-black rounded-full uppercase border border-amber-100">
+                  <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 text-xs font-black rounded-full uppercase border border-blue-100">
+                    <i className="fa-solid fa-user-tie"></i>
+                    <span className="opacity-60 mr-1">Cadastro:</span>
+                    {client.analystName || 'Não Atribuído'}
+                  </div>
+                  <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-black rounded-full uppercase border border-emerald-100">
                     <i className="fa-solid fa-star"></i>
-                    Contemplação: {client.analystContemplation}
+                    <span className="opacity-60 mr-1">Contemplação:</span>
+                    {client.analystContemplation || 'Não Atribuído'}
                   </div>
                   
                   <button 
@@ -411,6 +442,7 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
                         value={editForm.analystName}
                         onChange={(e) => handleAnalystTransfer(e.target.value)}
                       >
+                        <option value="">Nenhum analista atribuído</option>
                         {analysts.filter(a => a.role === 'Cadastro' || a.role === 'Ambos').map(a => (
                           <option key={a.id} value={a.name}>{a.name}</option>
                         ))}
@@ -421,8 +453,9 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
                       <select 
                         className="w-full px-4 py-2 bg-blue-50/50 border border-blue-100 rounded-xl text-sm font-bold appearance-none outline-none focus:ring-2 focus:ring-blue-500"
                         value={editForm.analystContemplation}
-                        onChange={(e) => setEditForm({...editForm, analystContemplation: e.target.value})}
+                        onChange={(e) => handleContemplationAnalystTransfer(e.target.value)}
                       >
+                        <option value="">Nenhum analista atribuído</option>
                         {analysts.filter(a => a.role === 'Contemplação' || a.role === 'Ambos').map(a => (
                           <option key={a.id} value={a.name}>{a.name}</option>
                         ))}

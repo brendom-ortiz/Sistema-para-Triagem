@@ -98,7 +98,7 @@ const Header: React.FC<HeaderProps> = ({ activeView, onViewChange }) => {
                 : 'text-gray-500 hover:text-blue-600 hover:bg-gray-50'
             }`}
           >
-            Analistas
+            Demanda do Analista
             {activeView === 'analysts' && <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-blue-600 rounded-full"></span>}
           </button>
           <button 
