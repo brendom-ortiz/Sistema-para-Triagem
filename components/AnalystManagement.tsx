@@ -421,7 +421,7 @@ const AnalystManagement: React.FC<AnalystManagementProps> = ({ analysts, clients
 
                   return matchesFilter && matchesSearch;
                 }).map(client => {
-                  const hasNewDocs = (client.documents?.length || 0) > (client.lastViewedDocsCount || 0);
+                  const hasNewDocs = (client.totalDocsCount || 0) > (client.lastViewedDocsCount || 0);
                   
                   return (
                   <tr key={client.id} className="hover:bg-gray-50/50 transition-colors group cursor-pointer" onClick={() => onSelectClient(client.id)}>

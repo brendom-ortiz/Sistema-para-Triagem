@@ -22,7 +22,8 @@ import {
   getDoc,
   getDocs,
   query, 
-  orderBy 
+  orderBy,
+  deleteField
 } from 'firebase/firestore';
 
 const DEFAULT_REQUIRED = [
@@ -227,7 +228,14 @@ const App: React.FC = () => {
   };
 
   const handleUpdateClientInfo = async (clientId: string, updates: Partial<Client>) => {
-    await updateDoc(doc(db, 'clients', clientId), updates);
+    const firestoreUpdates: any = { ...updates };
+    
+    // If linkSentDate is explicitly undefined, we want to remove it from Firestore
+    if (updates.hasOwnProperty('linkSentDate') && updates.linkSentDate === undefined) {
+      firestoreUpdates.linkSentDate = deleteField();
+    }
+
+    await updateDoc(doc(db, 'clients', clientId), firestoreUpdates);
   };
 
   const handleToggleRequirement = async (clientId: string, docType: DocumentCategory) => {
