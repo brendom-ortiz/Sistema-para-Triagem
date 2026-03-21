@@ -30,6 +30,9 @@ const ClientList: React.FC<ClientListProps> = ({ clients, selectedId, onSelect, 
                       {client.clientType}
                     </span>
                     <span className="font-semibold text-gray-800 truncate">{client.name}</span>
+                    {(client.totalDocsCount || 0) > (client.lastViewedDocsCount || 0) && (
+                      <span className="flex-shrink-0 w-2 h-2 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.5)]" title="Novos documentos"></span>
+                    )}
                   </div>
                   <span className={`flex-shrink-0 text-[10px] px-2 py-0.5 rounded-full font-bold ${
                     client.progress === 100 ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-700'

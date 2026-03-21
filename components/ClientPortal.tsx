@@ -128,15 +128,21 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ clientId }) => {
       console.log(`Saving document to Firestore path: clients/${clientId}/documents`);
       await addDoc(collection(db, 'clients', clientId, 'documents'), newDoc);
       
-      // Update uploadedDocumentTypes cache on the client document
+      // Update uploadedDocumentTypes cache and totalDocsCount on the client document
       const clientRef = doc(db, 'clients', clientId);
       const currentUploaded = client.uploadedDocumentTypes || [];
+      const currentTotal = client.totalDocsCount || 0;
+      
+      const updates: any = {
+        totalDocsCount: currentTotal + 1,
+        lastUpdate: new Date().toISOString()
+      };
+
       if (!currentUploaded.includes(type)) {
-        await updateDoc(clientRef, {
-          uploadedDocumentTypes: [...currentUploaded, type],
-          lastUpdate: new Date().toISOString()
-        });
+        updates.uploadedDocumentTypes = [...currentUploaded, type];
       }
+
+      await updateDoc(clientRef, updates);
 
       console.log("Document saved successfully");
       alert("Documento enviado com sucesso!");

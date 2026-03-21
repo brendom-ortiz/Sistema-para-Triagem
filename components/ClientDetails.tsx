@@ -68,10 +68,11 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
 
   useEffect(() => {
     // Clear "new documents" notification when viewing client details
-    if (client.documents && (client.documents.length !== client.lastViewedDocsCount)) {
-      onUpdateClientInfo({ lastViewedDocsCount: client.documents.length });
+    const totalDocs = client.totalDocsCount || 0;
+    if (totalDocs !== client.lastViewedDocsCount) {
+      onUpdateClientInfo({ lastViewedDocsCount: totalDocs });
     }
-  }, [client.id, client.documents?.length]);
+  }, [client.id, client.totalDocsCount]);
 
   useEffect(() => {
     setEditForm({

@@ -52,6 +52,7 @@ export interface Client {
   documents: ClientDocument[];
   requiredDocumentTypes: DocumentCategory[];
   uploadedDocumentTypes: DocumentCategory[]; // New field for caching
+  totalDocsCount?: number; // Total number of documents uploaded
   paymentStatus?: 'PENDING' | 'PAID';
   linkSentDate?: string; // Date when the upload link was sent to the client
   lastViewedDocsCount?: number; // To track new document notifications
