@@ -47,6 +47,7 @@ const App: React.FC = () => {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isClientPortal, setIsClientPortal] = useState(false);
   const [portalClientId, setPortalClientId] = useState<string | null>(null);
+  const [clientListTab, setClientListTab] = useState<'all' | 'notifications'>('all');
 
   // Check for client portal in URL
   useEffect(() => {
@@ -303,9 +304,34 @@ const App: React.FC = () => {
                       <i className="fa-solid fa-plus"></i>
                       Novo Cadastro
                     </button>
+
+                    <div className="flex bg-gray-50 p-1 rounded-xl border border-gray-100">
+                      <button 
+                        onClick={() => setClientListTab('all')}
+                        className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                          clientListTab === 'all' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'
+                        }`}
+                      >
+                        Todos ({filteredClients.length})
+                      </button>
+                      <button 
+                        onClick={() => setClientListTab('notifications')}
+                        className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all relative ${
+                          clientListTab === 'notifications' ? 'bg-white text-red-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'
+                        }`}
+                      >
+                        Novos ({filteredClients.filter(c => (c.totalDocsCount || 0) > (c.lastViewedDocsCount || 0)).length})
+                        {filteredClients.some(c => (c.totalDocsCount || 0) > (c.lastViewedDocsCount || 0)) && (
+                          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                        )}
+                      </button>
+                    </div>
                   </div>
                   <ClientList 
-                    clients={filteredClients} 
+                    clients={clientListTab === 'all' 
+                      ? filteredClients 
+                      : filteredClients.filter(c => (c.totalDocsCount || 0) > (c.lastViewedDocsCount || 0))
+                    } 
                     selectedId={selectedClientId} 
                     onSelect={setSelectedClientId} 
                     onDelete={handleDeleteClient}
