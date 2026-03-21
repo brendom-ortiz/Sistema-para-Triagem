@@ -9,13 +9,16 @@ interface AnalystManagementProps {
   onUpdate: (id: string, updates: Partial<Analyst>) => void;
   onRemove: (id: string) => void;
   onUpdateClientInfo: (id: string, updates: Partial<Client>) => void;
+  onSelectClient: (id: string) => void;
 }
 
-const AnalystManagement: React.FC<AnalystManagementProps> = ({ analysts, clients, onAdd, onUpdate, onRemove, onUpdateClientInfo }) => {
+const AnalystManagement: React.FC<AnalystManagementProps> = ({ analysts, clients, onAdd, onUpdate, onRemove, onUpdateClientInfo, onSelectClient }) => {
   const [formData, setFormData] = useState({ name: '', email: '', role: 'Cadastro' as Analyst['role'] });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [selectedAnalystId, setSelectedAnalystId] = useState<string | null>(null);
   const [clientSearchTerm, setClientSearchTerm] = useState('');
+  const [linkFilter, setLinkFilter] = useState<'all' | 'sent' | 'pending'>('all');
+  const [localSearchTerm, setLocalSearchTerm] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -341,7 +344,49 @@ const AnalystManagement: React.FC<AnalystManagementProps> = ({ analysts, clients
           </div>
 
           <div className="overflow-x-auto custom-scrollbar">
-            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4 border-b border-gray-50 pb-2">Demandas Detalhadas</h4>
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 border-b border-gray-50 pb-4 gap-4">
+              <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Demandas Detalhadas</h4>
+              
+              <div className="flex flex-col sm:flex-row items-center gap-4">
+                <div className="relative w-full sm:w-64">
+                  <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]"></i>
+                  <input 
+                    type="text" 
+                    placeholder="Pesquisar por nome, grupo ou cota..."
+                    className="w-full pl-8 pr-4 py-2 bg-gray-50 border border-gray-100 rounded-xl text-[10px] font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                    value={localSearchTerm}
+                    onChange={(e) => setLocalSearchTerm(e.target.value)}
+                  />
+                </div>
+
+                <div className="flex bg-gray-50 p-1 rounded-xl border border-gray-100 w-full sm:w-auto">
+                  <button 
+                    onClick={() => setLinkFilter('all')}
+                    className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
+                      linkFilter === 'all' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'
+                    }`}
+                  >
+                    Todos ({analystClients.length})
+                  </button>
+                  <button 
+                    onClick={() => setLinkFilter('sent')}
+                    className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
+                      linkFilter === 'sent' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'
+                    }`}
+                  >
+                    Link Enviado ({analystClients.filter(c => !!c.linkSentDate).length})
+                  </button>
+                  <button 
+                    onClick={() => setLinkFilter('pending')}
+                    className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
+                      linkFilter === 'pending' ? 'bg-white text-amber-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'
+                    }`}
+                  >
+                    Pendente ({analystClients.filter(c => !c.linkSentDate).length})
+                  </button>
+                </div>
+              </div>
+            </div>
             <table className="w-full text-left">
               <thead>
                 <tr className="text-gray-400">
@@ -351,14 +396,35 @@ const AnalystManagement: React.FC<AnalystManagementProps> = ({ analysts, clients
                   <th className="pb-4 text-[10px] font-black uppercase tracking-widest">Link Portal</th>
                   <th className="pb-4 text-[10px] font-black uppercase tracking-widest">Andamento</th>
                   <th className="pb-4 text-[10px] font-black uppercase tracking-widest">Status</th>
+                  <th className="pb-4 text-[10px] font-black uppercase tracking-widest text-right">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {analystClients.length > 0 ? analystClients.map(client => {
+                {analystClients.filter(client => {
+                  const matchesFilter = linkFilter === 'all' || 
+                    (linkFilter === 'sent' ? !!client.linkSentDate : !client.linkSentDate);
+                  
+                  const matchesSearch = !localSearchTerm || 
+                    (client.name?.toLowerCase() || '').includes(localSearchTerm.toLowerCase()) ||
+                    (client.group || '').includes(localSearchTerm) ||
+                    (client.quota || '').includes(localSearchTerm);
+
+                  return matchesFilter && matchesSearch;
+                }).length > 0 ? analystClients.filter(client => {
+                  const matchesFilter = linkFilter === 'all' || 
+                    (linkFilter === 'sent' ? !!client.linkSentDate : !client.linkSentDate);
+                  
+                  const matchesSearch = !localSearchTerm || 
+                    (client.name?.toLowerCase() || '').includes(localSearchTerm.toLowerCase()) ||
+                    (client.group || '').includes(localSearchTerm) ||
+                    (client.quota || '').includes(localSearchTerm);
+
+                  return matchesFilter && matchesSearch;
+                }).map(client => {
                   const hasNewDocs = (client.documents?.length || 0) > (client.lastViewedDocsCount || 0);
                   
                   return (
-                  <tr key={client.id} className="hover:bg-gray-50/50 transition-colors group">
+                  <tr key={client.id} className="hover:bg-gray-50/50 transition-colors group cursor-pointer" onClick={() => onSelectClient(client.id)}>
                     <td className="py-5">
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-black text-gray-800 group-hover:text-blue-600 transition-colors">{client.name}</p>
@@ -393,9 +459,12 @@ const AnalystManagement: React.FC<AnalystManagementProps> = ({ analysts, clients
                           {client.linkSentDate ? `Enviado: ${new Date(client.linkSentDate).toLocaleDateString()}` : 'Não Enviado'}
                         </span>
                         <button 
-                          onClick={() => onUpdateClientInfo(client.id, { 
-                            linkSentDate: client.linkSentDate ? undefined : new Date().toISOString() 
-                          })}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onUpdateClientInfo(client.id, { 
+                              linkSentDate: client.linkSentDate ? undefined : new Date().toISOString() 
+                            });
+                          }}
                           className="text-[9px] font-black text-blue-600 hover:text-blue-800 uppercase tracking-widest text-left"
                         >
                           {client.linkSentDate ? 'Desmarcar Envio' : 'Marcar como Enviado'}
@@ -422,11 +491,23 @@ const AnalystManagement: React.FC<AnalystManagementProps> = ({ analysts, clients
                         {client.progress === 100 ? 'Finalizado' : 'Pendente'}
                       </span>
                     </td>
+                    <td className="py-5 text-right">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelectClient(client.id);
+                        }}
+                        className="w-8 h-8 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-lg flex items-center justify-center transition-all shadow-sm border border-blue-100"
+                        title="Ver Perfil do Cliente"
+                      >
+                        <i className="fa-solid fa-arrow-right text-[10px]"></i>
+                      </button>
+                    </td>
                   </tr>
                 );
               }) : (
                   <tr>
-                    <td colSpan={5} className="py-20 text-center">
+                    <td colSpan={7} className="py-20 text-center">
                       <div className="flex flex-col items-center opacity-30">
                         <i className="fa-solid fa-folder-open text-4xl mb-4"></i>
                         <p className="text-xs font-black uppercase tracking-widest">Nenhum cliente vinculado a este analista.</p>

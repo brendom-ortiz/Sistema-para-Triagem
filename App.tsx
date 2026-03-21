@@ -326,6 +326,7 @@ const App: React.FC = () => {
               onRemove={handleRemoveAnalyst} 
               clients={clients} 
               onUpdateClientInfo={handleUpdateClientInfo}
+              onSelectClient={(id) => { setSelectedClientId(id); setActiveView('dashboard'); }}
             />
           )}
           {activeView === 'management' && <DocumentManagement clients={clients} onUpdateClientInfo={handleUpdateClientInfo} />}
