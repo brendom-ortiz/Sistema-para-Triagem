@@ -179,12 +179,21 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
       const folder = zip.folder(folderName);
 
       if (folder) {
-        client.documents.forEach((doc) => {
+        for (const doc of client.documents) {
           if (doc.fileData) {
             const base64Content = doc.fileData.split(',')[1];
             folder.file(`${doc.type.replace(/[^a-zA-Z0-9]/g, '_')}_${doc.fileName}`, base64Content, { base64: true });
+          } else if (doc.fileUrl) {
+            // Fallback for older documents in Storage
+            try {
+              const response = await fetch(doc.fileUrl);
+              const blob = await response.blob();
+              folder.file(`${doc.type.replace(/[^a-zA-Z0-9]/g, '_')}_${doc.fileName}`, blob);
+            } catch (fetchErr) {
+              console.warn(`Could not fetch file from URL for ${doc.fileName}:`, fetchErr);
+            }
           }
-        });
+        }
       }
 
       const content = await zip.generateAsync({ type: 'blob' });
@@ -235,6 +244,25 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
       console.error("Erro ao gerar pacote de documentos:", error);
       alert("Erro ao preparar os documentos para envio. Tente novamente.");
       setIsFinalizing(false);
+    }
+  };
+
+  const handleDownloadDocument = (doc: ClientDocument) => {
+    if (!doc.fileData && !doc.fileUrl) {
+      alert("Arquivo original não disponível para download.");
+      return;
+    }
+
+    try {
+      const link = document.createElement('a');
+      link.href = doc.fileData || doc.fileUrl || '';
+      link.download = doc.fileName || `${doc.type.replace(/[^a-zA-Z0-9]/g, '_')}_document`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error("Erro ao baixar documento:", err);
+      alert("Não foi possível baixar o arquivo.");
     }
   };
 
@@ -717,11 +745,19 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
               </button>
             </div>
             <div className="flex-grow bg-gray-200 p-12 flex items-center justify-center overflow-auto custom-scrollbar">
-              {viewingDoc.fileData ? (
-                <div className="relative group">
-                   <img src={viewingDoc.fileData} alt="Documento" className="max-w-full rounded-2xl shadow-2xl border-4 border-white" />
-                   <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl"></div>
-                </div>
+              {viewingDoc.fileData || viewingDoc.fileUrl ? (
+                (viewingDoc.fileData?.startsWith('data:application/pdf') || viewingDoc.fileName?.toLowerCase().endsWith('.pdf')) ? (
+                  <iframe 
+                    src={viewingDoc.fileData || viewingDoc.fileUrl} 
+                    className="w-full h-[60vh] rounded-2xl border-4 border-white shadow-2xl"
+                    title="Documento PDF"
+                  />
+                ) : (
+                  <div className="relative group">
+                    <img src={viewingDoc.fileData || viewingDoc.fileUrl} alt="Documento" className="max-w-full rounded-2xl shadow-2xl border-4 border-white" />
+                    <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl"></div>
+                  </div>
+                )
               ) : (
                 <div className="text-center text-gray-400">
                   <i className="fa-solid fa-eye-slash text-6xl mb-6 opacity-20"></i>
@@ -731,7 +767,10 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
             </div>
             <div className="p-8 border-t border-gray-100 flex justify-end gap-4 bg-white">
                <button onClick={() => setViewingDoc(null)} className="px-8 py-3 bg-gray-100 text-gray-600 font-black rounded-2xl text-xs tracking-widest uppercase hover:bg-gray-200 transition-all">Fechar</button>
-               <button className="px-10 py-3 bg-blue-600 text-white font-black rounded-2xl text-xs tracking-widest uppercase shadow-lg shadow-blue-100 flex items-center gap-3 hover:bg-blue-700 transition-all active:scale-95">
+               <button 
+                onClick={() => handleDownloadDocument(viewingDoc)}
+                className="px-10 py-3 bg-blue-600 text-white font-black rounded-2xl text-xs tracking-widest uppercase shadow-lg shadow-blue-100 flex items-center gap-3 hover:bg-blue-700 transition-all active:scale-95"
+               >
                  <i className="fa-solid fa-download"></i> Baixar Original
                </button>
             </div>

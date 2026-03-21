@@ -23,6 +23,7 @@ export interface ClientDocument {
   status: DocumentStatus;
   fileName?: string;
   fileData?: string; // Base64 data for viewing
+  fileUrl?: string; // For older documents stored in Storage
   uploadDate?: string;
   confidence?: number;
 }
