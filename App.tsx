@@ -272,70 +272,72 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen flex flex-col">
         <Header activeView={activeView} onViewChange={setActiveView} />
         
         <main className="flex-grow container mx-auto px-4 py-8 relative">
           {/* Indicador de Salvamento Automático */}
-          <div className="absolute top-0 right-4 flex items-center gap-2 text-[10px] font-black text-emerald-500 uppercase tracking-widest pointer-events-none opacity-50">
-            <i className="fa-solid fa-cloud-arrow-up animate-pulse"></i>
+          <div className="absolute top-0 right-4 flex items-center gap-2 text-[10px] font-black text-blue-400 uppercase tracking-widest pointer-events-none opacity-60">
+            <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></div>
             Sincronizado {lastSaved && lastSaved.toLocaleTimeString()}
           </div>
 
           {activeView === 'dashboard' && (
             <div className="flex flex-col lg:flex-row gap-8 animate-fadeIn">
               <div className="w-full lg:w-1/3 xl:w-1/4">
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                  <div className="p-4 border-b border-gray-100 space-y-3">
-                    <div className="relative">
-                      <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                <div className="bg-slate-900/40 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-800/50 overflow-hidden">
+                  <div className="p-5 border-b border-slate-800/50 space-y-4">
+                    <div className="relative group">
+                      <i className="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-400 transition-colors"></i>
                       <input 
                         type="text" 
                         placeholder="Buscar cliente ou cota..."
-                        className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm"
+                        className="w-full pl-11 pr-4 py-3 bg-slate-950/50 border border-slate-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all text-sm text-slate-200 placeholder:text-slate-600"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                       />
                     </div>
                     <button 
                       onClick={() => setIsAddModalOpen(true)}
-                      className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-sm"
+                      className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(37,99,235,0.2)] hover:shadow-[0_0_25px_rgba(37,99,235,0.4)] active:scale-[0.98]"
                     >
                       <i className="fa-solid fa-plus"></i>
                       Novo Cadastro
                     </button>
 
-                    <div className="flex bg-gray-50 p-1 rounded-xl border border-gray-100">
+                    <div className="flex bg-slate-950/50 p-1.5 rounded-2xl border border-slate-800/50">
                       <button 
                         onClick={() => setClientListTab('all')}
-                        className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
-                          clientListTab === 'all' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'
+                        className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                          clientListTab === 'all' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'
                         }`}
                       >
                         Todos ({filteredClients.length})
                       </button>
                       <button 
                         onClick={() => setClientListTab('notifications')}
-                        className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all relative ${
-                          clientListTab === 'notifications' ? 'bg-white text-red-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'
+                        className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all relative ${
+                          clientListTab === 'notifications' ? 'bg-red-600/20 text-red-400 border border-red-500/30' : 'text-slate-500 hover:text-slate-300'
                         }`}
                       >
                         Novos ({filteredClients.filter(c => (c.totalDocsCount || 0) > (c.lastViewedDocsCount || 0)).length})
                         {filteredClients.some(c => (c.totalDocsCount || 0) > (c.lastViewedDocsCount || 0)) && (
-                          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.8)]"></span>
                         )}
                       </button>
                     </div>
                   </div>
-                  <ClientList 
-                    clients={clientListTab === 'all' 
-                      ? filteredClients 
-                      : filteredClients.filter(c => (c.totalDocsCount || 0) > (c.lastViewedDocsCount || 0))
-                    } 
-                    selectedId={selectedClientId} 
-                    onSelect={setSelectedClientId} 
-                    onDelete={handleDeleteClient}
-                  />
+                  <div className="max-h-[calc(100vh-400px)] overflow-y-auto custom-scrollbar">
+                    <ClientList 
+                      clients={clientListTab === 'all' 
+                        ? filteredClients 
+                        : filteredClients.filter(c => (c.totalDocsCount || 0) > (c.lastViewedDocsCount || 0))
+                      } 
+                      selectedId={selectedClientId} 
+                      onSelect={setSelectedClientId} 
+                      onDelete={handleDeleteClient}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -351,13 +353,13 @@ const App: React.FC = () => {
                     onToggleRequirement={(docType) => handleToggleRequirement(selectedClientWithDocs.id, docType)}
                   />
                 ) : (
-                  <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-12 flex flex-col items-center justify-center text-center">
-                    <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 mb-6">
-                      <i className="fa-solid fa-users text-3xl"></i>
+                  <div className="bg-slate-900/40 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-800/50 p-16 flex flex-col items-center justify-center text-center">
+                    <div className="w-24 h-24 bg-blue-500/10 rounded-full flex items-center justify-center text-blue-400 mb-8 border border-blue-500/20 shadow-[0_0_30px_rgba(37,99,235,0.1)]">
+                      <i className="fa-solid fa-anchor text-4xl animate-float"></i>
                     </div>
-                    <h2 className="text-xl font-semibold text-gray-800 mb-2">Selecione um Cliente</h2>
-                    <p className="text-gray-500 max-w-xs mx-auto">
-                      Escolha um cliente da lista ao lado para gerenciar documentos e acompanhar o status.
+                    <h2 className="text-2xl font-black text-white mb-3 font-outfit tracking-tight">Selecione um Cliente</h2>
+                    <p className="text-slate-400 max-w-xs mx-auto text-sm leading-relaxed">
+                      Escolha um cliente da lista ao lado para gerenciar documentos e acompanhar o status da triagem.
                     </p>
                   </div>
                 )}
@@ -389,8 +391,13 @@ const App: React.FC = () => {
           />
         )}
 
-        <footer className="bg-white border-t border-gray-200 py-6 text-center text-gray-400 text-sm">
-          <p>&copy; 2024 Triagem Ancorada - Tecnologia para Gestão Documental</p>
+        <footer className="bg-slate-950/50 border-t border-slate-900 py-8 text-center">
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <i className="fa-solid fa-anchor text-blue-500/50 text-xs"></i>
+            <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em]">Triagem Ancorada</p>
+            <i className="fa-solid fa-anchor text-blue-500/50 text-xs"></i>
+          </div>
+          <p className="text-[9px] text-slate-600 font-bold uppercase tracking-widest">&copy; 2024 Tecnologia para Gestão Documental Inteligente</p>
         </footer>
       </div>
   );
