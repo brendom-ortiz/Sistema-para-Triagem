@@ -34,6 +34,8 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
   const [customRequirement, setCustomRequirement] = useState('');
   const [customRequirementPhase2, setCustomRequirementPhase2] = useState('');
   const [viewingDoc, setViewingDoc] = useState<ClientDocument | null>(null);
+  const [newNote, setNewNote] = useState('');
+  const [isAddingNote, setIsAddingNote] = useState(false);
   const [editForm, setEditForm] = useState({
     name: '',
     email: '',
@@ -146,6 +148,30 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
     if (window.confirm(`Tem certeza que deseja excluir permanentemente o cadastro de ${client.name}? Esta ação não pode ser desfeita.`)) {
       onDeleteClient();
     }
+  };
+
+  const handleAddNote = () => {
+    if (!newNote.trim()) return;
+    
+    // Find current analyst name from the client record (or use a placeholder)
+    const analystName = client.analystName || "Analista";
+    
+    const note = {
+      id: Date.now().toString(),
+      text: newNote.trim(),
+      analystName: analystName,
+      date: new Date().toLocaleString('pt-BR')
+    };
+    
+    const updatedNotes = [...(client.notes || []), note];
+    onUpdateClientInfo({ notes: updatedNotes });
+    setNewNote('');
+    setIsAddingNote(false);
+  };
+
+  const handleDeleteNote = (noteId: string) => {
+    const updatedNotes = (client.notes || []).filter(n => n.id !== noteId);
+    onUpdateClientInfo({ notes: updatedNotes });
   };
 
   const getPortalUrl = () => {
@@ -594,6 +620,81 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
             </div>
           </div>
         )}
+      </div>
+
+      <div className="bg-slate-900/40 backdrop-blur-xl rounded-[32px] border border-slate-800/50 p-8 mb-8 animate-fadeIn">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center text-amber-400 border border-amber-500/20 shadow-lg shadow-amber-500/10">
+              <i className="fa-solid fa-note-sticky text-xl"></i>
+            </div>
+            <h2 className="text-xl font-black text-white tracking-tight uppercase font-outfit">Anotações da Cota</h2>
+          </div>
+          <button 
+            onClick={() => setIsAddingNote(!isAddingNote)}
+            className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 border border-slate-700"
+          >
+            <i className={`fa-solid ${isAddingNote ? 'fa-xmark' : 'fa-plus'}`}></i>
+            {isAddingNote ? 'Cancelar' : 'Nova Anotação'}
+          </button>
+        </div>
+
+        {isAddingNote && (
+          <div className="mb-6 bg-slate-950/50 p-6 rounded-2xl border border-slate-800 animate-fadeIn">
+            <textarea 
+              value={newNote}
+              onChange={(e) => setNewNote(e.target.value)}
+              placeholder="Digite sua anotação aqui..."
+              className="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm text-white focus:outline-none focus:border-amber-500/50 min-h-[100px] mb-4"
+              autoFocus
+            />
+            <div className="flex justify-end">
+              <button 
+                onClick={handleAddNote}
+                disabled={!newNote.trim()}
+                className="bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-amber-500/20"
+              >
+                Salvar Anotação
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+          {client.notes && client.notes.length > 0 ? (
+            client.notes.map((note) => (
+              <div key={note.id} className="bg-slate-950/30 border border-slate-800/50 rounded-2xl p-5 hover:bg-slate-900/50 transition-all group relative">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 bg-indigo-500/10 text-indigo-400 text-[10px] font-black rounded-lg uppercase tracking-widest border border-indigo-500/20">
+                      {note.analystName}
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                      {note.date}
+                    </span>
+                  </div>
+                  <button 
+                    onClick={() => handleDeleteNote(note.id)}
+                    className="p-2 text-slate-500 hover:text-red-400 transition-all bg-slate-800/50 hover:bg-red-500/10 rounded-lg border border-slate-700/50 hover:border-red-500/30"
+                    title="Excluir anotação"
+                  >
+                    <i className="fa-solid fa-trash-can text-sm"></i>
+                  </button>
+                </div>
+                <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">
+                  {note.text}
+                </p>
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-10 border-2 border-dashed border-slate-800 rounded-3xl bg-slate-950/10">
+              <div className="w-12 h-12 bg-slate-900 rounded-full flex items-center justify-center text-slate-700 mx-auto mb-3 border border-slate-800">
+                <i className="fa-solid fa-comments text-xl"></i>
+              </div>
+              <p className="text-xs text-slate-600 font-black uppercase tracking-widest">Nenhuma anotação registrada</p>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="flex items-center justify-between mb-8">

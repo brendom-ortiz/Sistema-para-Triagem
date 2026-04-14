@@ -38,6 +38,13 @@ export interface Analyst {
   role: 'Cadastro' | 'Contemplação' | 'Ambos';
 }
 
+export interface Note {
+  id: string;
+  text: string;
+  analystName: string;
+  date: string;
+}
+
 export interface Client {
   id: string;
   name: string;
@@ -53,6 +60,7 @@ export interface Client {
   analystContemplationEmail?: string; 
   progress: number;
   documents: ClientDocument[];
+  notes?: Note[]; // New field for annotations
   requiredDocumentTypes: DocumentCategory[];
   phase2RequiredDocumentTypes?: DocumentCategory[]; // New field for Phase 2
   phase2Started?: boolean; // New field to control visibility of Phase 2
