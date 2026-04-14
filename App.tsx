@@ -23,7 +23,8 @@ import {
   getDocs,
   query, 
   orderBy,
-  deleteField
+  deleteField,
+  increment
 } from 'firebase/firestore';
 
 const DEFAULT_REQUIRED = [
@@ -88,6 +89,9 @@ const App: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
+  const selectedClient = clients.find(c => c.id === selectedClientId);
+  const selectedClientWithDocs = selectedClient ? { ...selectedClient, documents: selectedClientDocuments } : null;
+
   // Sync Documents for the SELECTED client
   useEffect(() => {
     if (!selectedClientId) {
@@ -106,7 +110,7 @@ const App: React.FC = () => {
       getDoc(clientRef).then(docSnap => {
         if (docSnap.exists()) {
           const clientData = docSnap.data() as Client;
-          const newProgress = calculateProgress(docs, clientData.requiredDocumentTypes);
+          const newProgress = calculateProgress(docs, clientData.requiredDocumentTypes, clientData.phase2RequiredDocumentTypes || [], clientData.phase2Started);
           if (newProgress !== clientData.progress) {
             console.log(`Updating progress for ${clientData.name} to ${newProgress}%`);
             updateDoc(clientRef, { 
@@ -121,17 +125,15 @@ const App: React.FC = () => {
     });
 
     return () => unsubscribe();
-  }, [selectedClientId]); // Removed 'clients' dependency to avoid infinite loop
+  }, [selectedClientId, selectedClient?.phase2Started, selectedClient?.requiredDocumentTypes, selectedClient?.phase2RequiredDocumentTypes]); 
 
-  const selectedClient = clients.find(c => c.id === selectedClientId);
-  const selectedClientWithDocs = selectedClient ? { ...selectedClient, documents: selectedClientDocuments } : null;
-
-  const calculateProgress = (docs: ClientDocument[], requiredTypes: DocumentCategory[]) => {
-    if (requiredTypes.length === 0) return 100;
-    const completedTypes = requiredTypes.filter(type => 
+  const calculateProgress = (docs: ClientDocument[], requiredTypes: DocumentCategory[], phase2RequiredTypes: DocumentCategory[] = [], phase2Started: boolean = false) => {
+    const allRequired = phase2Started ? [...requiredTypes, ...phase2RequiredTypes] : requiredTypes;
+    if (allRequired.length === 0) return 100;
+    const completedTypes = allRequired.filter(type => 
       docs.some(doc => doc.type === type && doc.status === DocumentStatus.UPLOADED)
     );
-    return Math.round((completedTypes.length / requiredTypes.length) * 100);
+    return Math.round((completedTypes.length / allRequired.length) * 100);
   };
 
   const handleAddClient = async (newClient: Client) => {
@@ -143,7 +145,9 @@ const App: React.FC = () => {
       console.log("Setting doc at path: clients/", id);
       await setDoc(clientRef, {
         ...clientData,
-        uploadedDocumentTypes: []
+        uploadedDocumentTypes: [],
+        totalDocsCount: 0,
+        lastViewedDocsCount: 0
       });
       console.log("Doc saved successfully");
       setSelectedClientId(id);
@@ -182,7 +186,7 @@ const App: React.FC = () => {
       const currentTotal = clientData.totalDocsCount || 0;
       
       const updates: any = {
-        totalDocsCount: currentTotal + 1,
+        totalDocsCount: increment(1),
         lastUpdate: new Date().toISOString()
       };
 
@@ -207,7 +211,7 @@ const App: React.FC = () => {
       const clientData = clientSnap.data() as Client;
       const currentTotal = clientData.totalDocsCount || 0;
       const updates: any = {
-        totalDocsCount: Math.max(0, currentTotal - 1),
+        totalDocsCount: increment(-1),
         lastUpdate: new Date().toISOString()
       };
 
@@ -229,12 +233,16 @@ const App: React.FC = () => {
   };
 
   const handleUpdateClientInfo = async (clientId: string, updates: Partial<Client>) => {
-    const firestoreUpdates: any = { ...updates };
+    const firestoreUpdates: any = {};
     
-    // If linkSentDate is explicitly undefined, we want to remove it from Firestore
-    if (updates.hasOwnProperty('linkSentDate') && updates.linkSentDate === undefined) {
-      firestoreUpdates.linkSentDate = deleteField();
-    }
+    Object.keys(updates).forEach(key => {
+      const val = (updates as any)[key];
+      if (val === undefined) {
+        firestoreUpdates[key] = deleteField();
+      } else {
+        firestoreUpdates[key] = val;
+      }
+    });
 
     await updateDoc(doc(db, 'clients', clientId), firestoreUpdates);
   };
@@ -250,6 +258,21 @@ const App: React.FC = () => {
     
     await updateDoc(doc(db, 'clients', clientId), {
       requiredDocumentTypes: newRequired
+    });
+  };
+
+  const handleTogglePhase2Requirement = async (clientId: string, docType: DocumentCategory) => {
+    const client = clients.find(c => c.id === clientId);
+    if (!client) return;
+
+    const phase2Required = client.phase2RequiredDocumentTypes || [];
+    const isCurrentlyRequired = phase2Required.includes(docType);
+    const newRequired = isCurrentlyRequired 
+      ? phase2Required.filter(t => t !== docType)
+      : [...phase2Required, docType];
+    
+    await updateDoc(doc(db, 'clients', clientId), {
+      phase2RequiredDocumentTypes: newRequired
     });
   };
 
@@ -351,6 +374,7 @@ const App: React.FC = () => {
                     onUpdateClientInfo={(updates) => handleUpdateClientInfo(selectedClientWithDocs.id, updates)}
                     onDeleteClient={() => handleDeleteClient(selectedClientWithDocs.id)}
                     onToggleRequirement={(docType) => handleToggleRequirement(selectedClientWithDocs.id, docType)}
+                    onTogglePhase2Requirement={(docType) => handleTogglePhase2Requirement(selectedClientWithDocs.id, docType)}
                   />
                 ) : (
                   <div className="bg-slate-900/40 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-800/50 p-16 flex flex-col items-center justify-center text-center">

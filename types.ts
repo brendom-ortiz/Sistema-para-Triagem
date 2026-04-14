@@ -11,6 +11,9 @@ export enum DocumentType {
   INCOME = 'Comprovante de Renda',
   CONTRACT = 'Contrato de Consórcio',
   REQUEST_EMAIL = 'E-mail de Solicitação',
+  CRLV = 'CRLV (Documento do Veículo)',
+  BILLING_FORM = 'Ficha de Faturamento',
+  INSPECTION = 'Vistoria',
   UNKNOWN = 'Desconhecido'
 }
 
@@ -51,6 +54,8 @@ export interface Client {
   progress: number;
   documents: ClientDocument[];
   requiredDocumentTypes: DocumentCategory[];
+  phase2RequiredDocumentTypes?: DocumentCategory[]; // New field for Phase 2
+  phase2Started?: boolean; // New field to control visibility of Phase 2
   uploadedDocumentTypes: DocumentCategory[]; // New field for caching
   totalDocsCount?: number; // Total number of documents uploaded
   paymentStatus?: 'PENDING' | 'PAID';

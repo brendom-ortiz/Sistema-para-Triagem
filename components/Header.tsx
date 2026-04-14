@@ -10,29 +10,6 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ activeView, onViewChange }) => {
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (u) => {
-      setUser(u);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const handleLogin = async () => {
-    try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-    } catch (error: any) {
-      console.error("Login error:", error);
-      alert(`Erro ao fazer login: ${error.message || 'Erro desconhecido'}`);
-    }
-  };
-
-  const handleLogout = async () => {
-    await signOut(auth);
-  };
-
   return (
     <header className="bg-slate-950/80 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50 shadow-2xl">
       <div className="container mx-auto px-4 h-20 flex items-center justify-between">
@@ -122,21 +99,6 @@ const Header: React.FC<HeaderProps> = ({ activeView, onViewChange }) => {
             <p className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em]">SISTEMA ATIVO</p>
             <p className="text-[9px] text-slate-500 font-bold uppercase">Admin Root</p>
           </div>
-          {user ? (
-            <div className="flex items-center gap-3">
-              <img src={user.photoURL || ''} alt="" className="w-9 h-9 rounded-full border-2 border-blue-500/30 shadow-lg" />
-              <button onClick={handleLogout} className="text-slate-400 hover:text-white transition-colors">
-                <i className="fa-solid fa-right-from-bracket"></i>
-              </button>
-            </div>
-          ) : (
-            <button 
-              onClick={handleLogin}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition-all shadow-lg"
-            >
-              Acessar
-            </button>
-          )}
         </div>
       </div>
     </header>
