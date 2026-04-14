@@ -36,6 +36,7 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
   const [viewingDoc, setViewingDoc] = useState<ClientDocument | null>(null);
   const [newNote, setNewNote] = useState('');
   const [isAddingNote, setIsAddingNote] = useState(false);
+  const [selectedNoteAnalyst, setSelectedNoteAnalyst] = useState('');
   const [editForm, setEditForm] = useState({
     name: '',
     email: '',
@@ -150,11 +151,17 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
     }
   };
 
+  useEffect(() => {
+    if (isAddingNote && !selectedNoteAnalyst) {
+      setSelectedNoteAnalyst(client.analystName || '');
+    }
+  }, [isAddingNote, client.analystName]);
+
   const handleAddNote = () => {
     if (!newNote.trim()) return;
     
-    // Find current analyst name from the client record (or use a placeholder)
-    const analystName = client.analystName || "Analista";
+    // Use selected analyst or fallback to client's default analyst
+    const analystName = selectedNoteAnalyst || client.analystName || "Analista";
     
     const note = {
       id: Date.now().toString(),
@@ -172,6 +179,26 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
   const handleDeleteNote = (noteId: string) => {
     const updatedNotes = (client.notes || []).filter(n => n.id !== noteId);
     onUpdateClientInfo({ notes: updatedNotes });
+  };
+
+  const getAnalystColor = (name: string) => {
+    const colors = [
+      { bg: 'bg-indigo-500/10', text: 'text-indigo-400', border: 'border-indigo-500/20' },
+      { bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20' },
+      { bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20' },
+      { bg: 'bg-rose-500/10', text: 'text-rose-400', border: 'border-rose-500/20' },
+      { bg: 'bg-sky-500/10', text: 'text-sky-400', border: 'border-sky-500/20' },
+      { bg: 'bg-violet-500/10', text: 'text-violet-400', border: 'border-violet-500/20' },
+      { bg: 'bg-orange-500/10', text: 'text-orange-400', border: 'border-orange-500/20' },
+    ];
+    
+    // Simple hash function to pick a consistent color for the name
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
   };
 
   const getPortalUrl = () => {
@@ -622,76 +649,92 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({
         )}
       </div>
 
-      <div className="bg-slate-900/40 backdrop-blur-xl rounded-[32px] border border-slate-800/50 p-8 mb-8 animate-fadeIn">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center text-amber-400 border border-amber-500/20 shadow-lg shadow-amber-500/10">
-              <i className="fa-solid fa-note-sticky text-xl"></i>
+      {/* SEÇÃO DE ANOTAÇÕES - COMPACTA */}
+      <div className="bg-slate-900/40 backdrop-blur-xl rounded-[24px] border border-slate-800/50 p-6 mb-8 animate-fadeIn">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-amber-500/10 rounded-lg flex items-center justify-center text-amber-400 border border-amber-500/20">
+              <i className="fa-solid fa-note-sticky text-sm"></i>
             </div>
-            <h2 className="text-xl font-black text-white tracking-tight uppercase font-outfit">Anotações da Cota</h2>
+            <h2 className="text-sm font-black text-white tracking-tight uppercase font-outfit">Anotações</h2>
           </div>
           <button 
             onClick={() => setIsAddingNote(!isAddingNote)}
-            className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 border border-slate-700"
+            className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2 border border-slate-700"
           >
             <i className={`fa-solid ${isAddingNote ? 'fa-xmark' : 'fa-plus'}`}></i>
-            {isAddingNote ? 'Cancelar' : 'Nova Anotação'}
+            {isAddingNote ? 'Cancelar' : 'Nova'}
           </button>
         </div>
 
         {isAddingNote && (
-          <div className="mb-6 bg-slate-950/50 p-6 rounded-2xl border border-slate-800 animate-fadeIn">
+          <div className="mb-4 bg-slate-950/50 p-4 rounded-xl border border-slate-800 animate-fadeIn">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+              <div>
+                <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Analista</label>
+                <select 
+                  value={selectedNoteAnalyst}
+                  onChange={(e) => setSelectedNoteAnalyst(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500/50 appearance-none cursor-pointer"
+                >
+                  <option value="">Selecione</option>
+                  {analysts.map(a => (
+                    <option key={a.id} value={a.name}>{a.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-end">
+                <button 
+                  onClick={handleAddNote}
+                  disabled={!newNote.trim()}
+                  className="w-full bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-amber-500/20"
+                >
+                  Salvar
+                </button>
+              </div>
+            </div>
             <textarea 
               value={newNote}
               onChange={(e) => setNewNote(e.target.value)}
-              placeholder="Digite sua anotação aqui..."
-              className="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm text-white focus:outline-none focus:border-amber-500/50 min-h-[100px] mb-4"
+              placeholder="Digite sua anotação..."
+              className="w-full bg-slate-900 border border-slate-800 rounded-lg p-3 text-xs text-white focus:outline-none focus:border-amber-500/50 min-h-[80px]"
               autoFocus
             />
-            <div className="flex justify-end">
-              <button 
-                onClick={handleAddNote}
-                disabled={!newNote.trim()}
-                className="bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-amber-500/20"
-              >
-                Salvar Anotação
-              </button>
-            </div>
           </div>
         )}
 
-        <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+        <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
           {client.notes && client.notes.length > 0 ? (
-            client.notes.map((note) => (
-              <div key={note.id} className="bg-slate-950/30 border border-slate-800/50 rounded-2xl p-5 hover:bg-slate-900/50 transition-all group relative">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 bg-indigo-500/10 text-indigo-400 text-[10px] font-black rounded-lg uppercase tracking-widest border border-indigo-500/20">
-                      {note.analystName}
-                    </span>
-                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                      {note.date}
-                    </span>
+            client.notes.map((note) => {
+              const color = getAnalystColor(note.analystName);
+              return (
+                <div key={note.id} className="bg-slate-950/20 border border-slate-800/30 rounded-xl p-3 hover:bg-slate-900/40 transition-all group">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-0.5 ${color.bg} ${color.text} text-[9px] font-black rounded-md uppercase tracking-widest border ${color.border}`}>
+                        {note.analystName}
+                      </span>
+                      <span className="text-[8px] text-slate-600 font-bold uppercase tracking-wider">
+                        {note.date}
+                      </span>
+                    </div>
+                    <button 
+                      onClick={() => handleDeleteNote(note.id)}
+                      className="opacity-0 group-hover:opacity-100 p-1 text-slate-600 hover:text-red-400 transition-all"
+                      title="Excluir"
+                    >
+                      <i className="fa-solid fa-trash-can text-[10px]"></i>
+                    </button>
                   </div>
-                  <button 
-                    onClick={() => handleDeleteNote(note.id)}
-                    className="p-2 text-slate-500 hover:text-red-400 transition-all bg-slate-800/50 hover:bg-red-500/10 rounded-lg border border-slate-700/50 hover:border-red-500/30"
-                    title="Excluir anotação"
-                  >
-                    <i className="fa-solid fa-trash-can text-sm"></i>
-                  </button>
+                  <p className="text-xs text-slate-400 leading-relaxed whitespace-pre-wrap">
+                    {note.text}
+                  </p>
                 </div>
-                <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">
-                  {note.text}
-                </p>
-              </div>
-            ))
+              );
+            })
           ) : (
-            <div className="text-center py-10 border-2 border-dashed border-slate-800 rounded-3xl bg-slate-950/10">
-              <div className="w-12 h-12 bg-slate-900 rounded-full flex items-center justify-center text-slate-700 mx-auto mb-3 border border-slate-800">
-                <i className="fa-solid fa-comments text-xl"></i>
-              </div>
-              <p className="text-xs text-slate-600 font-black uppercase tracking-widest">Nenhuma anotação registrada</p>
+            <div className="text-center py-6 border border-dashed border-slate-800 rounded-2xl bg-slate-950/10">
+              <p className="text-[10px] text-slate-700 font-black uppercase tracking-widest">Sem anotações</p>
             </div>
           )}
         </div>
